@@ -1,0 +1,533 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Borobudur Marathon 2026 Race Results API",
+    "description": "Official race results and split timings dataset for Borobudur Marathon 2026, covering the Marathon (42.195K, including 2,420 'Finished Black Flag' runners halted at 09:45 WIB), Half Marathon (21.1K), and 10K.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Borobudur Marathon Results API Support"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://raw.githubusercontent.com/gbudidarma/bormar2026-results-api/main",
+      "description": "GitHub Raw Static JSON Server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Events",
+      "description": "Race events metadata and participant counts"
+    },
+    {
+      "name": "Results",
+      "description": "Event race results and split times"
+    }
+  ],
+  "paths": {
+    "/events.json": {
+      "get": {
+        "operationId": "listEvents",
+        "tags": [
+          "Events"
+        ],
+        "summary": "List all race events and participant counts",
+        "description": "Returns metadata and total participant counts for all 3 Borobudur Marathon 2026 race events.",
+        "responses": {
+          "200": {
+            "description": "List of race events",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "competition": {
+                      "type": "string",
+                      "example": "Borobudur Marathon 2026"
+                    },
+                    "cid": {
+                      "type": "integer",
+                      "example": 19723
+                    },
+                    "rid": {
+                      "type": "integer",
+                      "example": 340
+                    },
+                    "total_events": {
+                      "type": "integer",
+                      "example": 3
+                    },
+                    "total_participants": {
+                      "type": "integer",
+                      "example": 12800
+                    },
+                    "total_finishers": {
+                      "type": "integer",
+                      "example": 8724
+                    },
+                    "total_black_flag_finishers": {
+                      "type": "integer",
+                      "example": 2420
+                    },
+                    "total_finishers_including_black_flag": {
+                      "type": "integer",
+                      "example": 11144
+                    },
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/EventSummary"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "competition": "Borobudur Marathon 2026",
+                  "cid": 19723,
+                  "rid": 340,
+                  "total_events": 3,
+                  "total_participants": 12800,
+                  "total_finishers": 8724,
+                  "total_black_flag_finishers": 2420,
+                  "total_finishers_including_black_flag": 11144,
+                  "events": [
+                    {
+                      "event_slug": "marathon",
+                      "event_name": "Marathon",
+                      "race_day": "Day 1",
+                      "distance_km": 42.195,
+                      "total_participants": 4857,
+                      "finishers_count": 1909,
+                      "black_flag_finishers_count": 2420,
+                      "total_finishers_including_black_flag": 4329,
+                      "split_checkpoints": [
+                        "KM 10",
+                        "KM 15",
+                        "KM 19.6",
+                        "KM 21.1",
+                        "KM 26.2",
+                        "KM 28.4",
+                        "KM 31.2",
+                        "KM 34",
+                        "KM 35",
+                        "KM 39.4"
+                      ]
+                    },
+                    {
+                      "event_slug": "half_marathon",
+                      "event_name": "Half Marathon",
+                      "race_day": "Day 1",
+                      "distance_km": 21.1,
+                      "total_participants": 4508,
+                      "finishers_count": 4129,
+                      "black_flag_finishers_count": 0,
+                      "total_finishers_including_black_flag": 4129,
+                      "split_checkpoints": [
+                        "KM 4.4",
+                        "KM 10.5",
+                        "KM 14.9",
+                        "KM 17.2"
+                      ]
+                    },
+                    {
+                      "event_slug": "10k",
+                      "event_name": "10K",
+                      "race_day": "Day 1",
+                      "distance_km": 10.0,
+                      "total_participants": 3435,
+                      "finishers_count": 2686,
+                      "black_flag_finishers_count": 0,
+                      "total_finishers_including_black_flag": 2686,
+                      "split_checkpoints": [
+                        "KM 3.5",
+                        "KM 7.9"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/{event_slug}_results.json": {
+      "get": {
+        "operationId": "getEventResultsBySlug",
+        "tags": [
+          "Results"
+        ],
+        "summary": "Get results by event slug",
+        "description": "Fetches the complete results dataset for the selected event slug.",
+        "parameters": [
+          {
+            "name": "event_slug",
+            "in": "path",
+            "required": true,
+            "description": "Event slug identifier",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "marathon",
+                "half_marathon",
+                "10k"
+              ],
+              "default": "marathon"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Event results dataset",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventDatasetResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/marathon_results.json": {
+      "get": {
+        "operationId": "getMarathonResults",
+        "tags": [
+          "Results"
+        ],
+        "summary": "Get Marathon (42.195K) results",
+        "description": "Returns all 4,857 participant results and split times for the Marathon (including 2,420 'Finished Black Flag' runners).",
+        "responses": {
+          "200": {
+            "description": "Marathon results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventDatasetResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/half_marathon_results.json": {
+      "get": {
+        "operationId": "getHalfMarathonResults",
+        "tags": [
+          "Results"
+        ],
+        "summary": "Get Half Marathon (21.1K) results",
+        "description": "Returns all 4,508 participant results and split times for the Half Marathon.",
+        "responses": {
+          "200": {
+            "description": "Half Marathon results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventDatasetResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/10k_results.json": {
+      "get": {
+        "operationId": "get10KResults",
+        "tags": [
+          "Results"
+        ],
+        "summary": "Get 10K results",
+        "description": "Returns all 3,435 participant results and split times for the 10K.",
+        "responses": {
+          "200": {
+            "description": "10K results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventDatasetResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bormar_all_results.json": {
+      "get": {
+        "operationId": "getAllBormarResults",
+        "tags": [
+          "Results"
+        ],
+        "summary": "Get all 12,800 results across all 3 events",
+        "description": "Returns the complete combined dataset for all 3 Borobudur Marathon 2026 events.",
+        "responses": {
+          "200": {
+            "description": "Combined results dataset",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "competition": {
+                      "type": "string",
+                      "example": "Borobudur Marathon 2026"
+                    },
+                    "cid": {
+                      "type": "integer",
+                      "example": 19723
+                    },
+                    "rid": {
+                      "type": "integer",
+                      "example": 340
+                    },
+                    "total_events": {
+                      "type": "integer",
+                      "example": 3
+                    },
+                    "total_participants": {
+                      "type": "integer",
+                      "example": 12800
+                    },
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/EventSummary"
+                      }
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/RunnerResult"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "EventSummary": {
+        "type": "object",
+        "required": [
+          "event_slug",
+          "event_name",
+          "race_day",
+          "distance_km",
+          "total_participants",
+          "finishers_count",
+          "black_flag_finishers_count",
+          "total_finishers_including_black_flag",
+          "split_checkpoints"
+        ],
+        "properties": {
+          "event_slug": {
+            "type": "string",
+            "example": "marathon"
+          },
+          "event_name": {
+            "type": "string",
+            "example": "Marathon"
+          },
+          "race_day": {
+            "type": "string",
+            "example": "Day 1"
+          },
+          "distance_km": {
+            "type": "number",
+            "format": "float",
+            "example": 42.195
+          },
+          "total_participants": {
+            "type": "integer",
+            "example": 4857
+          },
+          "finishers_count": {
+            "type": "integer",
+            "example": 1909
+          },
+          "black_flag_finishers_count": {
+            "type": "integer",
+            "example": 2420
+          },
+          "total_finishers_including_black_flag": {
+            "type": "integer",
+            "example": 4329
+          },
+          "split_checkpoints": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "KM 10",
+              "KM 15",
+              "KM 19.6",
+              "KM 21.1",
+              "KM 26.2",
+              "KM 28.4",
+              "KM 31.2",
+              "KM 34",
+              "KM 35",
+              "KM 39.4"
+            ]
+          }
+        }
+      },
+      "RunnerResult": {
+        "type": "object",
+        "required": [
+          "event_slug",
+          "event_name",
+          "race_day",
+          "status",
+          "bib_no",
+          "name",
+          "splits"
+        ],
+        "properties": {
+          "event_slug": {
+            "type": "string",
+            "example": "marathon"
+          },
+          "event_name": {
+            "type": "string",
+            "example": "Marathon"
+          },
+          "race_day": {
+            "type": "string",
+            "example": "Day 1"
+          },
+          "position": {
+            "type": "integer",
+            "nullable": true,
+            "example": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "FINISHED",
+              "BLACK_FLAG",
+              "DNS",
+              "DNF",
+              "CUT",
+              "DQ",
+              "DSQ",
+              "QRY",
+              "UNKNOWN"
+            ],
+            "example": "FINISHED"
+          },
+          "raw_status": {
+            "type": "string",
+            "enum": [
+              "FINISHED",
+              "DNS",
+              "DNF",
+              "CUT",
+              "DQ",
+              "DSQ",
+              "QRY",
+              "UNKNOWN"
+            ],
+            "example": "FINISHED"
+          },
+          "bib_no": {
+            "type": "string",
+            "example": "6"
+          },
+          "name": {
+            "type": "string",
+            "example": "WILSON CHERUIYOT"
+          },
+          "time": {
+            "type": "string",
+            "nullable": true,
+            "example": "02:20:23"
+          },
+          "bruto_time": {
+            "type": "string",
+            "nullable": true,
+            "example": "02:20:23"
+          },
+          "netto_time": {
+            "type": "string",
+            "nullable": true,
+            "example": "02:20:23"
+          },
+          "category": {
+            "type": "string",
+            "nullable": true,
+            "example": "TOP 8 OVERALL"
+          },
+          "gender": {
+            "type": "string",
+            "nullable": true,
+            "example": "Male"
+          },
+          "country": {
+            "type": "string",
+            "nullable": true,
+            "example": "Kenya"
+          },
+          "class": {
+            "type": "string",
+            "nullable": true,
+            "example": "Stopped at KM 35"
+          },
+          "remark": {
+            "type": "string",
+            "nullable": true,
+            "example": "Finished Black Flag"
+          },
+          "last_checkpoint": {
+            "type": "string",
+            "nullable": true,
+            "example": "KM 39.4"
+          },
+          "splits": {
+            "type": "object",
+            "example": {
+              "KM 10": "14:32",
+              "KM 15": "16:47",
+              "KM 19.6": "16:17",
+              "KM 21.1": "4:50",
+              "KM 26.2": "16:38",
+              "KM 28.4": "7:02",
+              "KM 31.2": "9:37",
+              "KM 34": "9:00",
+              "KM 35": "2:34",
+              "KM 39.4": "13:51"
+            }
+          }
+        }
+      },
+      "EventDatasetResponse": {
+        "type": "object",
+        "required": [
+          "metadata",
+          "results"
+        ],
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/EventSummary"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RunnerResult"
+            }
+          }
+        }
+      }
+    }
+  }
+}
