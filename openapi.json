@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Borobudur Marathon 2026 Race Results API",
-    "description": "Official race results and split timings dataset for Borobudur Marathon 2026, covering the Marathon (42.195K, including 2,420 'Finished Black Flag' runners halted at 09:45 WIB), Half Marathon (21.1K), and 10K.",
+    "description": "Official race results and split timings dataset for Borobudur Marathon 2026, covering the Marathon (42.195K, including 2,346 'Finished Black Flag' runners who passed COP 3 @ KM 34.5 before the 09:45 WIB halt), Half Marathon (21.1K), and 10K.",
     "version": "1.0.0",
     "contact": {
       "name": "Borobudur Marathon Results API Support"
@@ -88,8 +88,8 @@
                   "total_events": 3,
                   "total_participants": 12800,
                   "total_finishers": 8724,
-                  "total_black_flag_finishers": 2420,
-                  "total_finishers_including_black_flag": 11144,
+                  "total_black_flag_finishers": 2346,
+                  "total_finishers_including_black_flag": 11070,
                   "events": [
                     {
                       "event_slug": "marathon",
@@ -98,8 +98,8 @@
                       "distance_km": 42.195,
                       "total_participants": 4857,
                       "finishers_count": 1909,
-                      "black_flag_finishers_count": 2420,
-                      "total_finishers_including_black_flag": 4329,
+                      "black_flag_finishers_count": 2346,
+                      "total_finishers_including_black_flag": 4255,
                       "split_checkpoints": [
                         "KM 10",
                         "KM 15",

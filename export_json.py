@@ -63,8 +63,20 @@ EVENTS_CONFIG = [
     },
 ]
 
-BLACK_FLAG_CHECKPOINTS = {"KM 28.4", "KM 31.2", "KM 34", "KM 35", "KM 39.4"}
-BLACK_FLAG_MIN_ELAPSED_SEC = 3 * 3600 + 30 * 60  # 03:30:00
+# Official Bank Jateng Borobudur Marathon 2026 (42.195 KM) Cut-Off Points (COP)
+# Based on official race clock starting at 04:15 WIB:
+# - COP 1 (KM 10): Closes at 06:05 WIB (max elapsed 01:50:00 from 04:15 WIB / 1h 35m from W4 04:30 WIB)
+# - COP 2 (KM 20 / mat KM 19.6): Closes at 07:35 WIB (max elapsed 03:20:00 from 04:15 WIB / 3h 05m from W4 04:30 WIB)
+# - COP 3 (KM 34.5 / mats KM 34 & KM 35): Closes at 09:50 WIB (max elapsed 05:35:00 from 04:15 WIB / 5h 20m from W4 04:30 WIB)
+# - FINISH (KM 42.195): Closes at 11:00 WIB (max elapsed 06:45:00 from 04:15 WIB / 6h 30m from W4 04:30 WIB)
+# - Actual Black Flag Halt: 09:45 WIB (05:30:00 from 04:15 WIB)
+MARATHON_START_CLOCK_SEC = 4 * 3600 + 15 * 60       # 04:15:00 WIB
+COP1_CLOSE_CLOCK_SEC = 6 * 3600 + 5 * 60            # 06:05:00 WIB
+COP2_CLOSE_CLOCK_SEC = 7 * 3600 + 35 * 60           # 07:35:00 WIB
+COP3_CLOSE_CLOCK_SEC = 9 * 3600 + 50 * 60           # 09:50:00 WIB
+FINISH_CLOSE_CLOCK_SEC = 11 * 3600                  # 11:00:00 WIB
+BLACK_FLAG_MIN_ELAPSED_SEC = 3 * 3600 + 30 * 60     # 03:30:00 (07:45 WIB)
+COP3_PASSED_CHECKPOINTS = {"KM 34", "KM 35", "KM 39.4"}
 
 
 def time_to_sec(t: str | None) -> int | None:
@@ -96,6 +108,21 @@ def compute_netto_time(splits: dict, split_cols: list[str], finish_time: str | N
         tail = vals[last_none + 1 :]
         return sec_to_hms(sum(tail)) if tail else finish_time
     return sec_to_hms(sum(vals))
+
+
+def compute_cum_split_at(splits: dict, split_cols: list[str], target_cp: str) -> int | None:
+    """Compute cumulative elapsed split time at a specific checkpoint."""
+    if target_cp not in split_cols:
+        return None
+    idx = split_cols.index(target_cp)
+    sub_cols = split_cols[: idx + 1]
+    vals = [time_to_sec(splits.get(c)) for c in sub_cols]
+    if not vals or vals[-1] is None:
+        return None
+    if any(v is None for v in vals):
+        last_none = max(i for i, v in enumerate(vals) if v is None)
+        return sum(vals[last_none + 1 :])
+    return sum(vals)
 
 
 def compute_elapsed_to_last_cp(splits: dict, split_cols: list[str]) -> int:
@@ -134,25 +161,58 @@ def get_last_checkpoint(splits: dict, split_cols: list[str]) -> str | None:
     return reached[-1] if reached else None
 
 
-def is_marathon_black_flag(event_slug: str, raw_status: str, last_cp: str | None, splits: dict, split_cols: list[str]) -> bool:
+def evaluate_marathon_cop(
+    event_slug: str,
+    raw_status: str,
+    last_cp: str | None,
+    splits: dict,
+    split_cols: list[str],
+) -> tuple[str, str | None, str | None]:
     """
-    Determine whether a Full Marathon runner was halted by the 09:45 WIB Black Flag:
-    1. All 2,092 runners coded as 'QRY' in ScoreNow (halted on course within COT at KM 28.4–39.4).
-    2. The 328 runners coded as 'DNF' in ScoreNow who reached late checkpoints (KM 28.4, KM 31.2,
-       KM 34, KM 35, KM 39.4) with cumulative elapsed time >= 03:30:00 (or cumulative split sum >= 03:30:00)
-       who reached late checkpoints like KM 35 before the 09:45 WIB Black Flag halt.
-       (Excludes the 7 fast/elite runners who dropped out hours before the 09:45 WIB Black Flag).
+    Evaluate Full Marathon (42.195K) runners against official Cut-Off Points (COP) starting at 04:15 WIB:
+    - COP 1 (KM 10): Closes at 06:05 WIB (max elapsed 01:50:00 from 04:15 WIB)
+    - COP 2 (KM 20 / mat KM 19.6): Closes at 07:35 WIB (max elapsed 03:20:00 from 04:15 WIB)
+    - COP 3 (KM 34.5 / mats KM 34 & KM 35): Closes at 09:50 WIB (max elapsed 05:35:00 from 04:15 WIB)
+    - FINISH (KM 42.195): Closes at 11:00 WIB (max elapsed 06:45:00 from 04:15 WIB)
+    Runners who passed COP 3 (KM 34 / KM 35 / KM 39.4 within 09:50 WIB) but did not finish due to the
+    09:45 WIB Black Flag halt are classified as BLACK_FLAG ('Finished Black Flag', get finisher medals).
+    Runners who did not pass COP 1, COP 2, or COP 3 (or dropped out early) are classified as DNF.
     """
     if event_slug != "marathon":
-        return False
-    if raw_status == "QRY":
-        return True
-    if raw_status == "DNF" and last_cp in BLACK_FLAG_CHECKPOINTS:
-        elapsed_sec = compute_elapsed_to_last_cp(splits, split_cols)
-        raw_sum_sec = sum(time_to_sec(splits.get(c)) or 0 for c in split_cols)
-        if elapsed_sec >= BLACK_FLAG_MIN_ELAPSED_SEC or raw_sum_sec >= BLACK_FLAG_MIN_ELAPSED_SEC:
-            return True
-    return False
+        return raw_status, None, None
+    if raw_status == "FINISHED":
+        return "FINISHED", None, None
+    if raw_status in {"DNS", "DQ", "DSQ"}:
+        return raw_status, None, None
+
+    cop1_max = COP1_CLOSE_CLOCK_SEC - MARATHON_START_CLOCK_SEC  # 01:50:00
+    cop3_max = COP3_CLOSE_CLOCK_SEC - MARATHON_START_CLOCK_SEC  # 05:35:00
+
+    t10 = compute_cum_split_at(splits, split_cols, "KM 10")
+    t34 = compute_cum_split_at(splits, split_cols, "KM 34")
+    t35 = compute_cum_split_at(splits, split_cols, "KM 35")
+    t39 = compute_cum_split_at(splits, split_cols, "KM 39.4")
+    t_last = compute_elapsed_to_last_cp(splits, split_cols)
+
+    if last_cp in COP3_PASSED_CHECKPOINTS:
+        t_cop3 = t34 if t34 is not None else (t35 if t35 is not None else t39)
+        if t_last < BLACK_FLAG_MIN_ELAPSED_SEC:
+            return "DNF", "Did Not Pass COP", f"Early Dropout at {last_cp} (Before 09:45 WIB Halt)"
+        if t_cop3 is not None and t_cop3 <= cop3_max:
+            return "BLACK_FLAG", "Finished Black Flag", f"Passed COP 3 — Stopped at {last_cp} (Get Medal)"
+        return "DNF", "Did Not Pass COP", "Missed COP 3 @ KM 34.5 (Closes 09:50 WIB)"
+
+    if last_cp is None:
+        return "DNF", "Did Not Pass COP", "Missed COP 1 @ KM 10 (Closes 06:05 WIB)"
+    if last_cp in {"KM 10", "KM 15"}:
+        if t10 is not None and t10 > cop1_max:
+            return "DNF", "Did Not Pass COP", "Missed COP 1 @ KM 10 (Closes 06:05 WIB)"
+        return "DNF", "Did Not Pass COP", f"Missed COP 2 @ KM 20 (Stopped at {last_cp})"
+    if last_cp == "KM 19.6":
+        return "DNF", "Did Not Pass COP", "Missed COP 2 @ KM 20 (Closes 07:35 WIB)"
+    if last_cp in {"KM 21.1", "KM 26.2", "KM 28.4", "KM 31.2"}:
+        return "DNF", "Did Not Pass COP", f"Missed COP 3 @ KM 34.5 (Stopped at {last_cp})"
+    return "DNF", "Did Not Pass COP", "Did Not Pass COP"
 
 
 NAME_OVERRIDES = {
@@ -176,14 +236,9 @@ def convert_csv_to_records(cfg: dict) -> list[dict]:
                 splits[col] = val if val else None
 
             last_cp = get_last_checkpoint(splits, cfg["split_columns"])
-            remark = None
-            class_val = None
-            status = raw_status
-
-            if is_marathon_black_flag(cfg["event_slug"], raw_status, last_cp, splits, cfg["split_columns"]):
-                remark = "Finished Black Flag"
-                class_val = f"Stopped at {last_cp}" if last_cp else "Black Flag (09:45 WIB)"
-                status = "BLACK_FLAG"
+            status, remark, class_val = evaluate_marathon_cop(
+                cfg["event_slug"], raw_status, last_cp, splits, cfg["split_columns"]
+            )
 
             netto_time = compute_netto_time(splits, cfg["split_columns"], finish_time) if status == "FINISHED" else None
             bib_no = (row.get("Bib No") or "").strip()
@@ -232,7 +287,7 @@ def build_openapi_spec(event_summaries: list[dict], sample_runner: dict) -> dict
             "title": "Borobudur Marathon 2026 Race Results API",
             "description": (
                 "Official race results and split timings dataset for Borobudur Marathon 2026, "
-                "covering the Marathon (42.195K, including 2,420 'Finished Black Flag' runners halted at 09:45 WIB), "
+                "covering the Marathon (42.195K, including 2,346 'Finished Black Flag' runners who passed COP 3 @ KM 34.5 before the 09:45 WIB halt), "
                 "Half Marathon (21.1K), and 10K."
             ),
             "version": "1.0.0",

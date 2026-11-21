@@ -5,8 +5,8 @@
   "total_events": 3,
   "total_participants": 12800,
   "total_finishers": 8724,
-  "total_black_flag_finishers": 2420,
-  "total_finishers_including_black_flag": 11144,
+  "total_black_flag_finishers": 2346,
+  "total_finishers_including_black_flag": 11070,
   "events": [
     {
       "event_slug": "marathon",
@@ -15,8 +15,8 @@
       "distance_km": 42.195,
       "total_participants": 4857,
       "finishers_count": 1909,
-      "black_flag_finishers_count": 2420,
-      "total_finishers_including_black_flag": 4329,
+      "black_flag_finishers_count": 2346,
+      "total_finishers_including_black_flag": 4255,
       "split_checkpoints": [
         "KM 10",
         "KM 15",

@@ -454,7 +454,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             Race Analytics &amp; Results Explorer
           </h1>
           <p class="text-sm text-[var(--muted-foreground)] mt-1">
-            Full 42K Finishers, <strong>2,420 Finished Black Flag</strong> (09:45 WIB heat halt), DNF / DNS telemetry, category podiums, and 12,800-runner search across Marathon, Half Marathon &amp; 10K. Data from <a href="https://results.scorenow.co.id/Results.aspx?CId=19723&RId=340" target="_blank" rel="noopener noreferrer" class="font-medium text-red-500 hover:text-red-400 hover:underline">https://results.scorenow.co.id</a>
+            Full 42K Finishers (<strong>1,909</strong>), <strong>2,346 Finished Black Flag 🏅</strong> (passed COP 3 @ KM 34.5 before 09:45 WIB heat halt — get medals), <strong>188 DNF</strong> (did not pass COP), category podiums, and 12,800-runner search across Marathon, Half Marathon &amp; 10K. Data from <a href="https://results.scorenow.co.id/Results.aspx?CId=19723&RId=340" target="_blank" rel="noopener noreferrer" class="font-medium text-red-500 hover:text-red-400 hover:underline">https://results.scorenow.co.id</a>
           </p>
         </div>
         <!-- Simple Light / Dark Mode Switcher -->
@@ -597,98 +597,120 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       </div>
     </div>
 
-    <!-- Black Flag Early Halt Notice & Course Checkpoint Telemetry Section -->
+    <!-- Black Flag Early Halt Notice & Official Cut-Off Points (COP) Telemetry Section -->
     <div id="blackFlagSection" class="scroll-mt-20 bg-[var(--card)] border border-sky-500/40 rounded-2xl p-6 shadow-sm space-y-5">
       <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 pb-4 border-b border-[var(--border)]">
         <div class="space-y-1">
           <div class="flex flex-wrap items-center gap-2">
-            <span class="px-2.5 py-0.5 rounded-md text-xs font-bold bg-sky-500/15 text-sky-400 border border-sky-500/30">🏴 OFFICIAL RACE NOTICE — BLACK FLAG @ 09:45 WIB</span>
-            <h2 class="text-lg font-bold text-[var(--foreground)]">Full Marathon (42.195K) — Black Flag Early Halt &amp; Course Position Analysis</h2>
+            <span class="px-2.5 py-0.5 rounded-md text-xs font-bold bg-sky-500/15 text-sky-400 border border-sky-500/30">🏴 OFFICIAL COP &amp; BLACK FLAG TELEMETRY — START 04:15 WIB</span>
+            <h2 class="text-lg font-bold text-[var(--foreground)]">Full Marathon (42.195K) — Cut-Off Points (COP 1–3) &amp; Black Flag Medal Calculation</h2>
           </div>
           <p class="text-xs text-[var(--muted-foreground)] leading-relaxed">
-            The <strong>Bank Jateng Borobudur Marathon 2026 (42K Full Marathon)</strong> started at <strong>04:15 WIB</strong> (waves at 04:15, 04:20, 04:25, 04:30 WIB) with an official Cut-Off Time (COT) of <strong>11:00 WIB (6 hours 30 minutes)</strong>. Due to dangerously high temperatures/WBGT on course, race officials raised the <strong>Black Flag at 09:45 WIB</strong>—cutting the Full Marathon short by <strong>1 hour 15 minutes</strong> (up to <strong>1 hour 30 minutes</strong> for Wave 4). All <strong>2,420 runners</strong> still actively running on the late course checkpoints at 09:45 WIB (<code>2,092</code> coded as <code>QRY</code> + <code>328</code> late-checkpoint runners coded as <code>DNF</code> in raw ScoreNow results who passed late checkpoints like KM 35 before the halt) are classified as <strong>Finished Black Flag</strong>, bringing total recognized Marathon finishers to <strong>4,329 of 4,857 (89.13%)</strong>.
+            The <strong>Bank Jateng Borobudur Marathon 2026 (42.195K Full Marathon)</strong> started at <strong>04:15 WIB</strong> (Waves: W1 <code>04:15</code>, W2 <code>04:20</code>, W3 <code>04:25</code>, W4 <code>04:30 WIB</code>) using the same official race clock for every wave. Official Cut-Off Points are <strong>COP 1 at KM 10 (closes 06:05 WIB)</strong>, <strong>COP 2 at KM 20 (closes 07:35 WIB)</strong>, <strong>COP 3 at KM 34.5 (closes 09:50 WIB)</strong>, and <strong>FINISH at KM 42.195 (closes 11:00 WIB)</strong>. Due to high temperature/WBGT, the race was halted by the <strong>Black Flag at 09:45 WIB</strong>. Runners who <strong>passed COP 3 (KM 34 / KM 35 / KM 39.4 within 09:50 WIB)</strong> but did not finish due to the halt are classified as <strong>Finished Black Flag (<code>2,346</code> runners — get finisher medals 🏅)</strong>, bringing total recognized Marathon finishers to <strong>4,255 of 4,857 (87.61%)</strong>. Runners who <strong>did not pass COP 1, COP 2, or COP 3</strong> (including 76 stopped at KM 28.4–31.2 before COP 3 and 63 cut off at KM 19.6 / COP 2) are classified as <strong>DNF (<code>188</code> runners)</strong>.
           </p>
         </div>
-        <button
-          onclick="filterBlackFlagRunners()"
-          class="shrink-0 px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold shadow-sm transition"
-        >
-          🏴 View All 2,420 Finished Black Flag Runners ↓
-        </button>
+        <div class="flex flex-wrap items-center gap-2 shrink-0">
+          <button
+            onclick="filterBlackFlagRunners()"
+            class="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold shadow-sm transition"
+          >
+            🏴🏅 View 2,346 Finished Black Flag (Get Medals) ↓
+          </button>
+          <button
+            onclick="filterDnfByCop('Did Not Pass COP')"
+            class="px-3 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-400 text-xs font-semibold transition"
+          >
+            ❌ View 188 DNF (Missed COP) ↓
+          </button>
+        </div>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-        <!-- Left: Scheduled Start vs. Black Flag Time Table -->
+        <!-- Left: Official Cut-Off Times (COP 1, COP 2, COP 3, FINISH) Table -->
         <div class="lg:col-span-7 bg-[var(--background)] border border-[var(--border)] rounded-xl p-4 flex flex-col justify-between space-y-3">
           <div>
-            <div class="text-sm font-bold text-[var(--foreground)]">1. Scheduled Flag-Off vs. Black Flag Halt (09:45 WIB)</div>
-            <div class="text-xs text-[var(--muted-foreground)] mt-0.5">Half Marathon (COT 08:50 WIB) and 10K (COT 07:40 WIB) had already concluded before 09:45 WIB</div>
+            <div class="text-sm font-bold text-[var(--foreground)]">1. Official Marathon Cut-Off Times (COP) &amp; Race Clock Rules (Start: 04:15 WIB)</div>
+            <div class="text-xs text-[var(--muted-foreground)] mt-0.5">Same official race clock (WIB) for all waves (W1 04:15 • W2 04:20 • W3 04:25 • W4 04:30) • Miss any COP → DNF</div>
           </div>
           <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse text-xs">
               <thead>
                 <tr class="border-b border-[var(--border)] text-[var(--muted-foreground)]">
-                  <th class="py-2 pr-2 font-semibold">Race Category</th>
-                  <th class="py-2 px-2 font-semibold">Scheduled Flag-Off</th>
-                  <th class="py-2 px-2 font-semibold">Official COT</th>
-                  <th class="py-2 px-2 font-semibold">Black Flag Halt</th>
-                  <th class="py-2 pl-2 font-semibold">Time Cut Short / Impact</th>
+                  <th class="py-2 pr-2 font-semibold">Cut-Off Point</th>
+                  <th class="py-2 px-2 font-semibold">Distance (Mat)</th>
+                  <th class="py-2 px-2 font-semibold">Closes At (WIB)</th>
+                  <th class="py-2 px-2 font-semibold">Max Elapsed (04:15 / W4)</th>
+                  <th class="py-2 pl-2 font-semibold">COP Telemetry &amp; Medal Outcome</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-[var(--border)]">
                 <tr>
-                  <td class="py-2.5 pr-2 font-bold text-[var(--foreground)]">Marathon (42.195K)</td>
-                  <td class="py-2.5 px-2 text-[var(--muted-foreground)]">04:15 WIB <span class="block text-[11px]">(Waves: 04:15, 04:20, 04:25, 04:30)</span></td>
-                  <td class="py-2.5 px-2 font-mono text-[var(--foreground)]">11:00 WIB <span class="block text-[11px] text-[var(--muted-foreground)]">(6 hrs 30 mins)</span></td>
-                  <td class="py-2.5 px-2 font-mono font-bold text-sky-400">09:45 WIB</td>
-                  <td class="py-2.5 pl-2 text-sky-400 font-semibold">1 hr 15 mins <span class="block text-[11px] font-normal text-[var(--muted-foreground)]">(up to 1 hr 30 mins for Wave 4 • 2,420 runners)</span></td>
+                  <td class="py-2.5 pr-2 font-bold text-[var(--foreground)]">COP 1</td>
+                  <td class="py-2.5 px-2 font-mono text-[var(--foreground)]">10.0 KM <span class="block text-[11px] text-[var(--muted-foreground)]">(Mat: KM 10)</span></td>
+                  <td class="py-2.5 px-2 font-mono font-bold text-[var(--foreground)]">06:05 WIB</td>
+                  <td class="py-2.5 px-2 font-mono text-[var(--muted-foreground)]">1h 50m <span class="block text-[11px]">(1h 35m from W4)</span></td>
+                  <td class="py-2.5 pl-2 text-amber-400 font-semibold">4 DNF missed COP 1 <span class="block text-[11px] font-normal text-[var(--muted-foreground)]">4,439 active runners passed KM 10 ≤ 06:05 WIB</span></td>
                 </tr>
                 <tr>
-                  <td class="py-2.5 pr-2 font-bold text-[var(--foreground)]">Half Marathon (21.1K)</td>
-                  <td class="py-2.5 px-2 text-[var(--muted-foreground)]">04:55 WIB <span class="block text-[11px]">(Waves: 04:55–05:10)</span></td>
-                  <td class="py-2.5 px-2 font-mono text-[var(--foreground)]">08:50 WIB <span class="block text-[11px] text-[var(--muted-foreground)]">(3 hrs 40 mins)</span></td>
-                  <td class="py-2.5 px-2 text-[var(--foreground)] font-semibold">Already finished</td>
-                  <td class="py-2.5 pl-2 text-[var(--muted-foreground)]">— (4,129 / 4,508 finished)</td>
+                  <td class="py-2.5 pr-2 font-bold text-[var(--foreground)]">COP 2</td>
+                  <td class="py-2.5 px-2 font-mono text-[var(--foreground)]">20.0 KM <span class="block text-[11px] text-[var(--muted-foreground)]">(Mat: KM 19.6)</span></td>
+                  <td class="py-2.5 px-2 font-mono font-bold text-[var(--foreground)]">07:35 WIB</td>
+                  <td class="py-2.5 px-2 font-mono text-[var(--muted-foreground)]">3h 20m <span class="block text-[11px]">(3h 05m from W4)</span></td>
+                  <td class="py-2.5 pl-2 text-amber-400 font-semibold">83 DNF at/before COP 2 <span class="block text-[11px] font-normal text-[var(--muted-foreground)]">20 stopped at KM 10–15 + 63 cut off at KM 19.6</span></td>
                 </tr>
                 <tr>
-                  <td class="py-2.5 pr-2 font-bold text-[var(--foreground)]">10K (10.0K)</td>
-                  <td class="py-2.5 px-2 text-[var(--muted-foreground)]">05:40 WIB <span class="block text-[11px]">(Mass start)</span></td>
-                  <td class="py-2.5 px-2 font-mono text-[var(--foreground)]">07:40 WIB <span class="block text-[11px] text-[var(--muted-foreground)]">(2 hrs 00 mins)</span></td>
-                  <td class="py-2.5 px-2 text-[var(--foreground)] font-semibold">Already finished</td>
-                  <td class="py-2.5 pl-2 text-[var(--muted-foreground)]">— (2,686 / 3,435 finished)</td>
+                  <td class="py-2.5 pr-2 font-bold text-sky-400">COP 3 (Medal Gate)</td>
+                  <td class="py-2.5 px-2 font-mono text-[var(--foreground)]">34.5 KM <span class="block text-[11px] text-[var(--muted-foreground)]">(Mats: KM 34 / 35)</span></td>
+                  <td class="py-2.5 px-2 font-mono font-bold text-sky-400">09:50 WIB <span class="block text-[10px] font-normal text-[var(--muted-foreground)]">(Halt @ 09:45)</span></td>
+                  <td class="py-2.5 px-2 font-mono text-[var(--muted-foreground)]">5h 35m <span class="block text-[11px]">(5h 20m from W4)</span></td>
+                  <td class="py-2.5 pl-2 text-sky-400 font-semibold">🏅 2,346 Passed → Black Flag Medal <span class="block text-[11px] font-normal text-amber-400">❌ 97 DNF missed COP 3 (KM 21.1–31.2 + 1 &gt; 09:50)</span></td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 pr-2 font-bold text-red-400">FINISH</td>
+                  <td class="py-2.5 px-2 font-mono text-[var(--foreground)]">42.195 KM <span class="block text-[11px] text-[var(--muted-foreground)]">(Finish Line)</span></td>
+                  <td class="py-2.5 px-2 font-mono font-bold text-red-400">11:00 WIB</td>
+                  <td class="py-2.5 px-2 font-mono text-[var(--muted-foreground)]">6h 45m <span class="block text-[11px]">(6h 30m from W4)</span></td>
+                  <td class="py-2.5 pl-2 text-red-400 font-semibold">🏆 1,909 Full 42.195K Finishers <span class="block text-[11px] font-normal text-[var(--muted-foreground)]">Half Marathon (08:50) &amp; 10K (07:40) already finished</span></td>
                 </tr>
               </tbody>
             </table>
           </div>
         </div>
 
-        <!-- Right: Where the 2,420 Black Flag Runners Were on the Course -->
+        <!-- Right: COP 3 Pass (Finished Black Flag Get Medals) vs Missed COP (DNF) -->
         <div class="lg:col-span-5 bg-[var(--background)] border border-[var(--border)] rounded-xl p-4 flex flex-col justify-between space-y-3">
           <div>
-            <div class="text-sm font-bold text-[var(--foreground)]">2. Last Timing Mat Reached by the 2,420 Black Flag Runners</div>
-            <div class="text-xs text-[var(--muted-foreground)] mt-0.5">Click any checkpoint bar to filter the runner table to those stopped after that split</div>
+            <div class="text-sm font-bold text-[var(--foreground)]">2. COP Breakdown: Black Flag Medalists (2,346) vs. DNF (188)</div>
+            <div class="text-xs text-[var(--muted-foreground)] mt-0.5">Click any group below to filter the runner table to that exact COP cohort</div>
           </div>
           <div class="space-y-2 my-auto">
             <div onclick="filterBlackFlagByCheckpoint('KM 39.4')" class="p-2.5 rounded-lg bg-[var(--card)] border border-[var(--border)] hover:border-sky-500/50 cursor-pointer transition">
               <div class="flex items-center justify-between text-xs">
-                <span class="font-bold text-sky-400">Front Pack — Passed KM 39.4 (~KM 39.4–41.9)</span>
-                <span class="font-mono font-bold text-[var(--foreground)]">272 runners (11.2%)</span>
+                <span class="font-bold text-sky-400">🏅 Passed COP 3 — Reached KM 39.4 (~KM 39.4–41.9)</span>
+                <span class="font-mono font-bold text-[var(--foreground)]">272 runners (11.6%)</span>
               </div>
-              <div class="text-[11px] text-[var(--muted-foreground)] mt-0.5">Pacing ~5:30–5:45 finish mark, stopped &lt; 2.8 KM shy of the finish line</div>
+              <div class="text-[11px] text-[var(--muted-foreground)] mt-0.5">Passed all 3 COPs, stopped &lt; 2.8 KM from finish at 09:45 WIB → <strong>Finished Black Flag (Get Medal)</strong></div>
             </div>
             <div onclick="filterBlackFlagByCheckpoint('KM 35')" class="p-2.5 rounded-lg bg-[var(--card)] border border-[var(--border)] hover:border-sky-500/50 cursor-pointer transition">
               <div class="flex items-center justify-between text-xs">
-                <span class="font-bold text-sky-400">Main Pack — Passed KM 35 (~KM 35.0–40.0)</span>
-                <span class="font-mono font-bold text-[var(--foreground)]">1,451 runners (60.0%)</span>
+                <span class="font-bold text-sky-400">🏅 Passed COP 3 — Reached KM 35 (~KM 35.0–39.4)</span>
+                <span class="font-mono font-bold text-[var(--foreground)]">1,451 runners (61.8%)</span>
               </div>
-              <div class="text-[11px] text-[var(--muted-foreground)] mt-0.5">Largest group on course approaching KM 39–40 near Borobudur when halted at 09:45 WIB</div>
+              <div class="text-[11px] text-[var(--muted-foreground)] mt-0.5">Passed COP 3 (KM 34.5 ≤ 09:50 WIB) &amp; KM 35 mat before halt → <strong>Finished Black Flag (Get Medal)</strong></div>
             </div>
             <div onclick="filterBlackFlagByCheckpoint('KM 34')" class="p-2.5 rounded-lg bg-[var(--card)] border border-[var(--border)] hover:border-sky-500/50 cursor-pointer transition">
               <div class="flex items-center justify-between text-xs">
-                <span class="font-bold text-sky-400">Back Pack — Passed KM 34 (~KM 34.0–35.0)</span>
-                <span class="font-mono font-bold text-[var(--foreground)]">624 runners (25.8%)</span>
+                <span class="font-bold text-sky-400">🏅 Passed COP 3 — Reached KM 34 (≤ 09:50 WIB)</span>
+                <span class="font-mono font-bold text-[var(--foreground)]">623 runners (26.6%)</span>
               </div>
-              <div class="text-[11px] text-[var(--muted-foreground)] mt-0.5">Within official 6h30m COT pace (~9:14/km max) passing KM 34 when halted (+73 at KM 28.4–31.2)</div>
+              <div class="text-[11px] text-[var(--muted-foreground)] mt-0.5">Cleared KM 34 / COP 3 within 09:50 WIB cutoff when halted → <strong>Finished Black Flag (Get Medal)</strong></div>
+            </div>
+            <div onclick="filterDnfByCop('Did Not Pass COP')" class="p-2.5 rounded-lg bg-amber-500/5 border border-amber-500/30 hover:border-amber-500/60 cursor-pointer transition">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-bold text-amber-400">❌ Did Not Pass COP → Official DNF (No Medal)</span>
+                <span class="font-mono font-bold text-amber-400">188 runners (3.87%)</span>
+              </div>
+              <div class="text-[11px] text-[var(--muted-foreground)] mt-0.5">4 missed COP 1 (KM 10) • 83 missed/cut at COP 2 (KM 20) • 97 missed COP 3 (KM 21.1–31.2 + 1 &gt; 09:50) • 4 early dropouts</div>
             </div>
           </div>
         </div>
@@ -827,18 +849,21 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           </select>
         </div>
         <div>
-          <label class="block text-xs font-medium text-[var(--muted-foreground)] mb-1">Remark / Black Flag</label>
+          <label class="block text-xs font-medium text-[var(--muted-foreground)] mb-1">COP &amp; Black Flag Filter</label>
           <select
             id="runnerRemarkSelect"
             class="w-full px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] text-xs focus:outline-none"
           >
-            <option value="ALL">All Remarks</option>
-            <option value="Finished Black Flag">🏴 Finished Black Flag (2,420)</option>
-            <option value="Stopped at KM 39.4">↳ Stopped after KM 39.4 (272)</option>
-            <option value="Stopped at KM 35">↳ Stopped after KM 35 (1,451)</option>
-            <option value="Stopped at KM 34">↳ Stopped after KM 34 (624)</option>
-            <option value="Stopped at KM 31.2">↳ Stopped after KM 31.2 (46)</option>
-            <option value="Stopped at KM 28.4">↳ Stopped after KM 28.4 (27)</option>
+            <option value="ALL">All COP &amp; Remarks</option>
+            <option value="Finished Black Flag">🏴🏅 Finished Black Flag — Get Medal (2,346)</option>
+            <option value="Passed COP 3 — Stopped at KM 39.4 (Get Medal)">↳ Passed COP 3 — Stopped @ KM 39.4 (272)</option>
+            <option value="Passed COP 3 — Stopped at KM 35 (Get Medal)">↳ Passed COP 3 — Stopped @ KM 35 (1,451)</option>
+            <option value="Passed COP 3 — Stopped at KM 34 (Get Medal)">↳ Passed COP 3 — Stopped @ KM 34 (623)</option>
+            <option value="Did Not Pass COP">❌ DNF — All Did Not Pass COP (188)</option>
+            <option value="Missed COP 3">↳ DNF — Missed COP 3 @ KM 34.5 (97)</option>
+            <option value="Missed COP 2">↳ DNF — Missed COP 2 @ KM 20 (83)</option>
+            <option value="Missed COP 1">↳ DNF — Missed COP 1 @ KM 10 (4)</option>
+            <option value="Early Dropout">↳ DNF — Early Dropout Before Halt (4)</option>
           </select>
         </div>
       </div>
@@ -1098,10 +1123,21 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     function filterBlackFlagByCheckpoint(cp) {
       runnerEventFilter = '0';
       runnerStatusFilter = 'BLACK_FLAG';
-      runnerRemarkFilter = `Stopped at ${cp}`;
+      runnerRemarkFilter = `Passed COP 3 — Stopped at ${cp} (Get Medal)`;
       document.getElementById('runnerEventSelect').value = '0';
       document.getElementById('runnerStatusSelect').value = 'BLACK_FLAG';
-      document.getElementById('runnerRemarkSelect').value = `Stopped at ${cp}`;
+      document.getElementById('runnerRemarkSelect').value = `Passed COP 3 — Stopped at ${cp} (Get Medal)`;
+      filterRunnersList();
+      document.getElementById('runnerTableSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function filterDnfByCop(copFilter) {
+      runnerEventFilter = '0';
+      runnerStatusFilter = 'DNF';
+      runnerRemarkFilter = copFilter || 'Did Not Pass COP';
+      document.getElementById('runnerEventSelect').value = '0';
+      document.getElementById('runnerStatusSelect').value = 'DNF';
+      document.getElementById('runnerRemarkSelect').value = runnerRemarkFilter;
       filterRunnersList();
       document.getElementById('runnerTableSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -1156,9 +1192,16 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       const rem = r[15];
       const cls = r[16];
       if (!rem) return '';
+      if (rem === 'Finished Black Flag') {
+        return `
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-sky-500/15 text-sky-400 border border-sky-500/30" title="Passed COP 3 (KM 34.5 ≤ 09:50 WIB) before 09:45 WIB Black Flag halt — Eligible for Finisher Medal">
+            🏴🏅 ${escapeHtml(rem)}${cls ? ` <span class="font-mono text-[11px] opacity-85">(${escapeHtml(cls)})</span>` : ''}
+          </span>
+        `;
+      }
       return `
-        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-sky-500/15 text-sky-400 border border-sky-500/30" title="Halted by Black Flag at 09:45 WIB due to high temperature">
-          🏴 ${escapeHtml(rem)}${cls ? ` <span class="font-mono text-[11px] opacity-85">(${escapeHtml(cls)})</span>` : ''}
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30" title="Did not pass Cut-Off Point (COP) — Official DNF">
+          ❌ ${escapeHtml(rem)}${cls ? ` <span class="font-mono text-[11px] opacity-85">(${escapeHtml(cls)})</span>` : ''}
         </span>
       `;
     }
@@ -1299,6 +1342,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         if (runnerRemarkFilter !== 'ALL') {
           if (runnerRemarkFilter === 'Finished Black Flag') {
             if (r[15] !== 'Finished Black Flag') return false;
+          } else if (runnerRemarkFilter === 'Did Not Pass COP') {
+            if (r[15] !== 'Did Not Pass COP') return false;
+          } else if (runnerRemarkFilter.startsWith('Missed COP') || runnerRemarkFilter === 'Early Dropout') {
+            if (!(r[16] || '').startsWith(runnerRemarkFilter)) return false;
           } else if (r[16] !== runnerRemarkFilter) {
             return false;
           }
@@ -1335,7 +1382,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         return `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-mono ${cls}">${medal}${fmtNum(pos)}</span>`;
       }
       if (status === 'BLACK_FLAG' || remark === 'Finished Black Flag') {
-        return `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold border bg-sky-500/15 text-sky-400 border-sky-500/30" title="Finished Black Flag (halted at 09:45 WIB due to high temperature)">🏴 BLACK FLAG</span>`;
+        return `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold border bg-sky-500/15 text-sky-400 border-sky-500/30" title="Finished Black Flag (Passed COP 3 before 09:45 WIB halt — Get Finisher Medal)">🏴🏅 BLACK FLAG</span>`;
       }
       const colors = {
         DNF: 'bg-amber-500/15 text-amber-500 border-amber-500/30',
@@ -1346,6 +1393,98 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       };
       const c = colors[status] || 'bg-[var(--background)] text-[var(--muted-foreground)] border-[var(--border)]';
       return `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold border ${c}">${escapeHtml(status)}</span>`;
+    }
+
+    function cumSplitSecAt(splitsArr, maxIdx) {
+      if (!splitsArr || maxIdx < 0 || maxIdx >= splitsArr.length) return null;
+      const vals = [];
+      for (let i = 0; i <= maxIdx; i++) {
+        vals.push(parseTimeSec(splitsArr[i]));
+      }
+      if (vals[maxIdx] === null) return null;
+      let lastNull = -1;
+      for (let i = 0; i <= maxIdx; i++) {
+        if (vals[i] === null) lastNull = i;
+      }
+      let sum = 0;
+      for (let i = lastNull + 1; i <= maxIdx; i++) {
+        sum += vals[i] || 0;
+      }
+      return sum;
+    }
+
+    function secToClockWib(elapsedSec) {
+      if (elapsedSec === null || elapsedSec === undefined) return '—';
+      const total = (4 * 3600 + 15 * 60) + Math.round(elapsedSec);
+      const h = Math.floor(total / 3600) % 24;
+      const m = Math.floor((total % 3600) / 60);
+      const s = total % 60;
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')} WIB`;
+    }
+
+    function buildMarathonCopSectionHtml(r) {
+      if (r[0] !== 0) return '';
+      const sp = r[10] || [];
+      let lastIdx = -1;
+      for (let i = 0; i < sp.length; i++) {
+        if (parseTimeSec(sp[i]) !== null) lastIdx = i;
+      }
+      const t10 = cumSplitSecAt(sp, 0);
+      const t19 = cumSplitSecAt(sp, 2);
+      const t34 = cumSplitSecAt(sp, 7);
+      const t35 = cumSplitSecAt(sp, 8);
+      const t39 = cumSplitSecAt(sp, 9);
+      const tCop3 = t34 !== null ? t34 : (t35 !== null ? t35 : t39);
+
+      const pass1 = r[2] === 'FINISHED' || (t10 !== null && t10 <= 6600) || (t10 === null && lastIdx >= 1);
+      const pass2 = r[2] === 'FINISHED' || (pass1 && ((t19 !== null && t19 <= 12000 && lastIdx >= 3) || (r[2] === 'BLACK_FLAG') || (t19 === null && lastIdx >= 3)));
+      const pass3 = r[2] === 'FINISHED' || r[2] === 'BLACK_FLAG' || (lastIdx >= 7 && tCop3 !== null && tCop3 <= 20100);
+
+      const cardCls = ok => ok
+        ? 'bg-sky-500/10 border-sky-500/30 text-sky-300'
+        : 'bg-amber-500/10 border-amber-500/30 text-amber-300';
+
+      const finishCardHtml = r[2] === 'FINISHED'
+        ? `<div class="p-2.5 rounded-xl border bg-red-500/10 border-red-500/30 text-xs">
+             <div class="font-bold text-red-400">FINISH (42.195K • 11:00 WIB)</div>
+             <div class="font-mono font-bold text-[var(--foreground)] mt-0.5">🏆 Finished (${escapeHtml(r[5])})</div>
+             <div class="text-[11px] text-red-300 mt-0.5">🏅 Full 42.195K Finisher Medal</div>
+           </div>`
+        : r[2] === 'BLACK_FLAG'
+        ? `<div class="p-2.5 rounded-xl border bg-sky-500/15 border-sky-500/40 text-xs">
+             <div class="font-bold text-sky-400">BLACK FLAG HALT (09:45 WIB)</div>
+             <div class="font-mono font-bold text-[var(--foreground)] mt-0.5">🏴🏅 Finished Black Flag</div>
+             <div class="text-[11px] text-sky-300 mt-0.5">Passed All COPs → Get Finisher Medal</div>
+           </div>`
+        : `<div class="p-2.5 rounded-xl border bg-amber-500/10 border-amber-500/30 text-xs">
+             <div class="font-bold text-amber-400">OUTCOME (COT 11:00 WIB)</div>
+             <div class="font-mono font-bold text-amber-300 mt-0.5">❌ ${escapeHtml(r[2])} (${escapeHtml(r[16] || 'Missed COP')})</div>
+             <div class="text-[11px] text-[var(--muted-foreground)] mt-0.5">Did Not Pass COP → No Finisher Medal</div>
+           </div>`;
+
+      return `
+        <div>
+          <div class="text-xs font-semibold text-[var(--muted-foreground)] mb-2">Official Cut-Off Points (COP) Verification &amp; Medal Eligibility (Start: 04:15 WIB)</div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+            <div class="p-2.5 rounded-xl border ${cardCls(pass1)} text-xs">
+              <div class="font-bold">COP 1 (KM 10 • Closes 06:05 WIB)</div>
+              <div class="font-mono font-bold text-[var(--foreground)] mt-0.5">${pass1 ? '✓ Passed' : '✕ Missed'} ${t10 !== null ? `@ ${secToClockWib(t10)}` : ''}</div>
+              <div class="text-[11px] opacity-80 mt-0.5">Max Elapsed: 01:50:00 (1h 35m W4)</div>
+            </div>
+            <div class="p-2.5 rounded-xl border ${cardCls(pass2)} text-xs">
+              <div class="font-bold">COP 2 (KM 20 • Closes 07:35 WIB)</div>
+              <div class="font-mono font-bold text-[var(--foreground)] mt-0.5">${pass2 ? '✓ Passed' : '✕ Missed / Cut Off'} ${t19 !== null ? `@ ${secToClockWib(t19)}` : ''}</div>
+              <div class="text-[11px] opacity-80 mt-0.5">Max Elapsed: 03:20:00 (3h 05m W4)</div>
+            </div>
+            <div class="p-2.5 rounded-xl border ${cardCls(pass3)} text-xs">
+              <div class="font-bold">COP 3 (KM 34.5 • Closes 09:50 WIB)</div>
+              <div class="font-mono font-bold text-[var(--foreground)] mt-0.5">${pass3 ? '✓ Passed' : '✕ Missed'} ${tCop3 !== null ? `@ ${secToClockWib(tCop3)}` : ''}</div>
+              <div class="text-[11px] opacity-80 mt-0.5">Max Elapsed: 05:35:00 (5h 20m W4)</div>
+            </div>
+            ${finishCardHtml}
+          </div>
+        </div>
+      `;
     }
 
     function showRunnerDetail(idxInFiltered) {
@@ -1368,11 +1507,20 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       const blackFlagNotice = (r[2] === 'BLACK_FLAG' || r[15] === 'Finished Black Flag') ? `
         <div class="p-3 rounded-xl bg-sky-500/10 border border-sky-500/30 text-xs text-sky-300 flex flex-wrap items-center justify-between gap-2">
           <div>
-            <strong>🏴 Finished Black Flag (09:45 WIB Early Halt):</strong> This runner was actively on the Full Marathon course within the 6h30m Cut-Off Time (${escapeHtml(r[16] || 'on course')}) when the Black Flag was raised due to high heat/WBGT.
+            <strong>🏴🏅 Finished Black Flag (Passed COP 3 @ KM 34.5 — Get Finisher Medal):</strong> This runner passed all 3 Cut-Off Points (COP 1 @ KM 10 ≤ 06:05 WIB, COP 2 @ KM 20 ≤ 07:35 WIB, and COP 3 @ KM 34.5 ≤ 09:50 WIB: <strong>${escapeHtml(r[16] || 'Passed COP 3')}</strong>) before the race was halted by the Black Flag at 09:45 WIB due to extreme heat/WBGT.
           </div>
           <span class="px-2 py-0.5 rounded bg-sky-500/20 font-mono font-semibold text-sky-300">Raw ScoreNow Code: ${escapeHtml(r[17] || 'QRY')}</span>
         </div>
+      ` : (r[0] === 0 && r[2] === 'DNF') ? `
+        <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <strong>❌ Official DNF (Did Not Pass Cut-Off Point):</strong> This runner did not pass the required Cut-Off Point (<strong>${escapeHtml(r[16] || 'Missed COP')}</strong>, start clock 04:15 WIB) and is classified as DNF.
+          </div>
+          <span class="px-2 py-0.5 rounded bg-amber-500/20 font-mono font-semibold text-amber-300">Raw ScoreNow Code: ${escapeHtml(r[17] || 'DNF')}</span>
+        </div>
       ` : '';
+
+      const copVerificationHtml = buildMarathonCopSectionHtml(r);
 
       const eid = ev.eid || (r[0] + 1);
       const resultUrl = r[18] ? `https://results.scorenow.co.id/myresults.aspx?CId=19723&RId=340&EId=${eid}&AId=${r[18]}` : '';
@@ -1397,7 +1545,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           <div class="flex flex-wrap items-center gap-4">
             <div class="text-right px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30">
               <div class="text-xs text-red-400 font-medium">Official Finish Time</div>
-              <div class="text-sm font-mono font-bold text-red-400">${escapeHtml(r[5] || (r[2] === 'BLACK_FLAG' ? 'Halted @ 09:45' : '—'))} ${r[6] ? `<span class="text-xs font-normal text-sky-400">(${escapeHtml(r[6])} /km)</span>` : ''}</div>
+              <div class="text-sm font-mono font-bold text-red-400">${escapeHtml(r[5] || (r[2] === 'BLACK_FLAG' ? 'Halted @ 09:45 (🏅 Medal)' : '—'))} ${r[6] ? `<span class="text-xs font-normal text-sky-400">(${escapeHtml(r[6])} /km)</span>` : ''}</div>
             </div>
             <button
               onclick="document.getElementById('runnerDetailDrawer').classList.add('hidden')"
@@ -1408,6 +1556,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           </div>
         </div>
         ${blackFlagNotice}
+        ${copVerificationHtml}
         <div>
           <div class="text-xs font-semibold text-[var(--muted-foreground)] mb-2">Checkpoint Split Times (Segment Intervals)</div>
           <div class="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 gap-2">${splitsHtml}</div>
@@ -1534,20 +1683,20 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           pct: stats.finished_plus_bf_pct
         },
         {
-          title: '🏴 Finished Black Flag',
+          title: '🏴🏅 Finished Black Flag (Medal)',
           value: `${stats.black_flag_pct}%`,
           sub: hasBf
-            ? `${fmtNum(stats.black_flag)} Marathon runners halted @ 09:45 WIB`
+            ? `${fmtNum(stats.black_flag)} passed COP 3 (KM 34.5 ≤ 09:50 WIB) → get medals`
             : 'No Black Flag halt (Finished before 09:45)',
-          badge: hasBf ? 'KM 28.4 – KM 41.9' : 'Concluded',
+          badge: hasBf ? 'Passed COP 3' : 'Concluded',
           color: 'text-sky-400',
           barColor: 'bg-sky-500',
           pct: stats.black_flag_pct
         },
         {
-          title: 'Did Not Finish (True DNF)',
+          title: 'Did Not Finish (Missed COP)',
           value: `${stats.dnf_pct}%`,
-          sub: `${fmtNum(stats.dnf)} early DNF (${fmtNum(stats.dq)} DQ)`,
+          sub: `${fmtNum(stats.dnf)} missed COP / DNF (${fmtNum(stats.dq)} DQ)`,
           badge: `DQ: ${stats.dq_pct}%`,
           color: 'text-amber-500',
           barColor: 'bg-amber-500',
@@ -1725,10 +1874,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           <div
             onclick="filterBlackFlagRunners()"
             class="grid grid-cols-12 items-center gap-2 text-xs cursor-pointer transition select-none bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 rounded-lg px-2 py-1.5 mt-2"
-            title="Click to view all 2,420 Finished Black Flag runners halted at 09:45 WIB"
+            title="Click to view all ${fmtNum(stats.black_flag)} Finished Black Flag runners who passed COP 3 (get medals)"
           >
-            <div class="col-span-4 font-mono font-bold text-sky-400">🏴 Black Flag (09:45 WIB)</div>
-            <div class="col-span-5 text-sky-300 text-[11px]">Halted on course (KM 28.4–41.9)</div>
+            <div class="col-span-4 font-mono font-bold text-sky-400">🏴🏅 Black Flag (09:45 WIB)</div>
+            <div class="col-span-5 text-sky-300 text-[11px]">Passed COP 3 @ KM 34.5 → Get Medal</div>
             <div class="col-span-3 text-right">
               <span class="font-bold text-sky-400">${fmtNum(stats.black_flag)}</span>
               <span class="text-sky-300/80 ml-1">(${stats.black_flag_pct}%)</span>
