@@ -139,8 +139,8 @@ def is_marathon_black_flag(event_slug: str, raw_status: str, last_cp: str | None
     Determine whether a Full Marathon runner was halted by the 09:45 WIB Black Flag:
     1. All 2,092 runners coded as 'QRY' in ScoreNow (halted on course within COT at KM 28.4–39.4).
     2. The 328 runners coded as 'DNF' in ScoreNow who reached late checkpoints (KM 28.4, KM 31.2,
-       KM 34, KM 35, KM 39.4) with cumulative elapsed time >= 03:30:00 (or cumulative split sum >= 03:30:00),
-       such as TAN BERRY (Bib F13534, passed KM 35 at 04:10:55 and was stopped at KM 40 by Black Flag).
+       KM 34, KM 35, KM 39.4) with cumulative elapsed time >= 03:30:00 (or cumulative split sum >= 03:30:00)
+       who reached late checkpoints like KM 35 before the 09:45 WIB Black Flag halt.
        (Excludes the 7 fast/elite runners who dropped out hours before the 09:45 WIB Black Flag).
     """
     if event_slug != "marathon":
