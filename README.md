@@ -30,7 +30,7 @@ By the time the Black Flag was raised at **09:45 WIB**, the **Half Marathon** (C
 | **10K (10.0K)** | `05:40 WIB` (Mass start) | `07:40 WIB` (2 hrs 00 mins) | Already finished | — |
 
 ### 2. Where the 2,420 `Finished Black Flag` Runners Were on the Course
-In the raw ScoreNow results, the **2,420 Full Marathon runners** who were still actively running on the late course checkpoints within official COT limits when halted at 09:45 WIB were split across two raw ScoreNow codes (`2,092` coded as `QRY` + `328` late-checkpoint runners at `KM 28.4`–`KM 39.4` with elapsed time $\ge$ `03:30:00` coded as `DNF`, such as **TAN BERRY**, Bib `F13534`, who passed `KM 35` at `04:10:55` and was stopped at KM 40). In all JSON datasets (`marathon_results.json` and `bormar_all_results.json`) and in the interactive dashboard, all **2,420** runners are unified under:
+In the raw ScoreNow results, the **2,420 Full Marathon runners** who were still actively running on the late course checkpoints within official COT limits when halted at 09:45 WIB were split across two raw ScoreNow codes (`2,092` coded as `QRY` + `328` late-checkpoint runners at `KM 28.4`–`KM 39.4` with elapsed time $\ge$ `03:30:00` coded as `DNF` who reached late checkpoints like KM 35 before the halt). In all JSON datasets (`marathon_results.json` and `bormar_all_results.json`) and in the interactive dashboard, all **2,420** runners are unified under:
 - `"status": "BLACK_FLAG"` (with original ScoreNow code preserved in `"raw_status"`)
 - `"remark": "Finished Black Flag"`
 - `"class": "Stopped at KM <last_checkpoint>"`
@@ -39,7 +39,7 @@ In the raw ScoreNow results, the **2,420 Full Marathon runners** who were still 
 | Pack Position on Course at 09:45 WIB | Last Timing Mat Reached | Approximate Course Range | Runners (`%` of Black Flag) | Telemetry Notes |
 | :--- | :---: | :---: | ---: | :--- |
 | **Front-End of Remaining Pack** | **`KM 39.4`** | `~KM 39.4 – KM 41.9` | **`272`** (`11.2%`) | Pacing right around the 5:30–5:45 finish mark in the final stretch near Borobudur, stopped < 2.8 KM shy of the finish line. |
-| **Main Pack on Course** | **`KM 35`** | `~KM 35.0 – KM 40.0` | **`1,451`** (`60.0%`) | Largest group of active Marathon runners on course between KM 35 and KM 40 when the Black Flag was raised (`1,195` raw `QRY` + `256` raw `DNF`, incl. **TAN BERRY**). |
+| **Main Pack on Course** | **`KM 35`** | `~KM 35.0 – KM 40.0` | **`1,451`** (`60.0%`) | Largest group of active Marathon runners on course between KM 35 and KM 40 when the Black Flag was raised (`1,195` raw `QRY` + `256` raw `DNF`). |
 | **Back-End Within COT** | **`KM 34`** | `~KM 34.0 – KM 35.0` | **`624`** (`25.8%`) | Pacing within the 6h30m COT limit (~9:14/km max pace) at the 5h15m–5h30m mark passing through KM 34. |
 | **Approaching KM 32–34** | **`KM 28.4` / `KM 31.2`** | `~KM 28.4 – KM 33.9` | **`73`** (`3.0%`) | `46` runners past `KM 31.2` + `27` runners past `KM 28.4` actively on course at the 09:45 WIB halt. |
 | **Total `Finished Black Flag`** | **All Checkpoints** | **`~KM 28.4 – KM 41.9`** | **`2,420`** (`100.0%`) | Combined with **`1,909` full 42.195K finishers**, **`4,329` of `4,857` (`89.13%`)** Marathon runners finished or were halted by Black Flag (leaving only `114` true early `DNF` runners). |
@@ -80,9 +80,9 @@ Explore the full interactive race analytics, search all 12,800 runners, view pod
 
 ---
 
-## Example Runner Records
+## Example Runner Record
 
-### 1. Full 42.195K Marathon Finisher
+### Full 42.195K Marathon Finisher
 ```json
 {
   "event_slug": "marathon",
@@ -113,41 +113,6 @@ Explore the full interactive race analytics, search all 12,800 runners, view pod
     "KM 34": "9:00",
     "KM 35": "2:34",
     "KM 39.4": "13:51"
-  }
-}
-```
-
-### 2. Marathon Runner Halted by Black Flag (`TAN BERRY`, Stopped Near KM 40 After Passing KM 35)
-```json
-{
-  "event_slug": "marathon",
-  "event_name": "Marathon",
-  "race_day": "Day 1",
-  "position": null,
-  "status": "BLACK_FLAG",
-  "raw_status": "DNF",
-  "bib_no": "F13534",
-  "name": "TAN BERRY",
-  "time": null,
-  "bruto_time": null,
-  "netto_time": null,
-  "category": "MASTER NATIONAL 40+",
-  "gender": "Female",
-  "country": "Indonesia",
-  "class": "Stopped at KM 35",
-  "remark": "Finished Black Flag",
-  "last_checkpoint": "KM 35",
-  "splits": {
-    "KM 10": "34:15",
-    "KM 15": "40:06",
-    "KM 19.6": "37:25",
-    "KM 21.1": "12:57",
-    "KM 26.2": "45:51",
-    "KM 28.4": "19:40",
-    "KM 31.2": "26:54",
-    "KM 34": "24:48",
-    "KM 35": "7:59",
-    "KM 39.4": null
   }
 }
 ```
