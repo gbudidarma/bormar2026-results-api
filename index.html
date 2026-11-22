@@ -1249,6 +1249,22 @@
       }).join('');
     }
 
+    function filterByKpiStatus(statusVal) {
+      if (selectedEventSlug === 'ALL') {
+        runnerEventFilter = 'ALL';
+      } else {
+        const evIdx = DASHBOARD_DATA.event_lookup.findIndex(e => e.slug === selectedEventSlug);
+        runnerEventFilter = evIdx >= 0 ? String(evIdx) : 'ALL';
+      }
+      runnerStatusFilter = statusVal;
+      runnerRemarkFilter = statusVal === 'BLACK_FLAG' ? 'Finished Black Flag' : 'ALL';
+      document.getElementById('runnerEventSelect').value = runnerEventFilter;
+      document.getElementById('runnerStatusSelect').value = runnerStatusFilter;
+      document.getElementById('runnerRemarkSelect').value = runnerRemarkFilter;
+      filterRunnersList();
+      document.getElementById('runnerTableSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
     function renderKPIs() {
       const { isAll, stats } = getActiveContext();
       const grid = document.getElementById('kpiGrid');
@@ -1256,26 +1272,38 @@
 
       const cards = [
         {
-          title: hasBf ? 'Total Finishers (Incl. Black Flag)' : 'Finish Rate (FINISHED)',
+          title: 'Total Finishers (Incl. Black Flag)',
           value: `${stats.finished_plus_bf_pct}%`,
           sub: hasBf
             ? `${fmtNum(stats.finished_plus_bf)} of ${fmtNum(stats.total)} (${fmtNum(stats.finished)} Full + ${fmtNum(stats.black_flag)} Black Flag)`
-            : `${fmtNum(stats.finished)} of ${fmtNum(stats.total)} runners`,
-          badge: hasBf ? `Full 42K: ${stats.finished_pct}%` : 'Official Finishers',
+            : `${fmtNum(stats.finished)} of ${fmtNum(stats.total)} runners (No Black Flag halt)`,
+          badge: 'All Medalists',
           color: 'text-red-400',
           barColor: 'bg-red-500',
-          pct: stats.finished_plus_bf_pct
+          pct: stats.finished_plus_bf_pct,
+          filterStatus: 'ALL_FINISHERS'
+        },
+        {
+          title: '🏆 Finished (Non-Black Flag)',
+          value: `${stats.finished_pct}%`,
+          sub: `${fmtNum(stats.finished)} of ${fmtNum(stats.total)} completed full ${isAll ? 'race distance' : stats.distance_km + ' KM'}`,
+          badge: isAll ? 'Full Distance' : `Full ${stats.distance_km}K`,
+          color: 'text-emerald-400',
+          barColor: 'bg-emerald-500',
+          pct: stats.finished_pct,
+          filterStatus: 'FINISHED'
         },
         {
           title: '🏴🏅 Finished Black Flag (Medal)',
           value: `${stats.black_flag_pct}%`,
           sub: hasBf
             ? `${fmtNum(stats.black_flag)} passed COP 3 (KM 34.5 ≤ 09:50 WIB) → get medals`
-            : 'No Black Flag halt (Finished before 09:45)',
+            : '0 Black Flag (Finished before 09:45 WIB)',
           badge: hasBf ? 'Passed COP 3' : 'Concluded',
           color: 'text-sky-400',
           barColor: 'bg-sky-500',
-          pct: stats.black_flag_pct
+          pct: stats.black_flag_pct,
+          filterStatus: 'BLACK_FLAG'
         },
         {
           title: 'Did Not Finish (Missed COP)',
@@ -1284,7 +1312,8 @@
           badge: `DQ: ${stats.dq_pct}%`,
           color: 'text-amber-500',
           barColor: 'bg-amber-500',
-          pct: stats.dnf_pct
+          pct: stats.dnf_pct,
+          filterStatus: 'DNF'
         },
         {
           title: 'Did Not Start (DNS)',
@@ -1293,21 +1322,17 @@
           badge: 'Pre-race attrition',
           color: 'text-rose-500',
           barColor: 'bg-rose-500',
-          pct: stats.dns_pct
-        },
-        {
-          title: isAll ? 'Average Pace (Full Finishers)' : 'Avg Finish Time & Pace',
-          value: isAll ? stats.avg_pace : stats.avg_time,
-          sub: isAll ? `Median Pace: ${stats.median_pace} (${fmtNum(stats.finished)} timed)` : `Avg Pace: ${stats.avg_pace} • Best: ${stats.best_time}`,
-          badge: isAll ? 'BORMAR 2026' : `${stats.distance_km} KM`,
-          color: 'text-indigo-500',
-          barColor: 'bg-indigo-500',
-          pct: 100
+          pct: stats.dns_pct,
+          filterStatus: 'DNS'
         }
       ];
 
       grid.innerHTML = cards.map(c => `
-        <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 shadow-sm flex flex-col justify-between">
+        <div
+          onclick="filterByKpiStatus('${c.filterStatus}')"
+          class="bg-[var(--card)] border border-[var(--border)] hover:border-red-500/40 rounded-2xl p-4 shadow-sm flex flex-col justify-between cursor-pointer transition"
+          title="Click to filter runner table by ${c.title}"
+        >
           <div>
             <div class="flex items-center justify-between gap-2">
               <span class="text-xs font-medium text-[var(--muted-foreground)]">${c.title}</span>
@@ -1363,16 +1388,17 @@
       `;
 
       if (isAll) {
+        const evFinSummary = DASHBOARD_DATA.events.map(e => `${fmtNum(e.finished)} ${e.event_slug === 'marathon' ? 'FM' : e.event_slug === 'half_marathon' ? 'HM' : '10K'}`).join(' • ');
         paceGenderCards.innerHTML = `
-          <div class="p-3 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+          <div onclick="filterByKpiStatus('ALL_FINISHERS')" class="p-3 rounded-xl bg-[var(--background)] border border-[var(--border)] hover:border-red-500/40 cursor-pointer transition">
             <div class="text-xs text-[var(--muted-foreground)]">Total Finishers (Full + Black Flag)</div>
             <div class="text-base font-bold text-red-400 mt-0.5">${fmtNum(stats.finished_plus_bf)} (${stats.finished_plus_bf_pct}%)</div>
             <div class="text-xs text-[var(--muted-foreground)]">${fmtNum(stats.finished)} Full + ${fmtNum(stats.black_flag)} Black Flag</div>
           </div>
-          <div class="p-3 rounded-xl bg-[var(--background)] border border-[var(--border)]">
-            <div class="text-xs text-[var(--muted-foreground)]">Overall Mean Pace</div>
-            <div class="text-base font-bold text-sky-500 mt-0.5">${stats.avg_pace}</div>
-            <div class="text-xs text-[var(--muted-foreground)]">Median: ${stats.median_pace}</div>
+          <div onclick="filterByKpiStatus('FINISHED')" class="p-3 rounded-xl bg-[var(--background)] border border-[var(--border)] hover:border-emerald-500/40 cursor-pointer transition">
+            <div class="text-xs text-[var(--muted-foreground)]">Finished (Non-Black Flag)</div>
+            <div class="text-base font-bold text-emerald-400 mt-0.5">${fmtNum(stats.finished)} (${stats.finished_pct}%)</div>
+            <div class="text-xs text-[var(--muted-foreground)]">${evFinSummary}</div>
           </div>
         `;
       } else {
