@@ -155,7 +155,7 @@
     <!-- Top KPI Cards -->
     <div id="overviewSection" class="scroll-mt-20 space-y-4">
       <div id="kpiGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4"></div>
-      <div id="paceKpiGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+      <div id="paceKpiGrid" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
 
       <!-- Status Breakdown Bar + Event Comparison Table -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2">
@@ -1371,58 +1371,56 @@
       if (paceGrid) {
         const paceCards = [
           {
-            title: '🏆 Male Avg Pace (Non-Black Flag)',
-            value: stats.male_avg_pace,
-            sub: `${fmtNum(stats.male_finishers)} of ${fmtNum(stats.finished)} non-black flag (${stats.male_fin_share_pct}%) • Med: ${stats.male_median_pace}`,
-            badge: isAll ? 'Full Distance' : `Full ${stats.distance_km}K`,
-            color: 'text-emerald-400',
-            barColor: 'bg-emerald-500',
-            pct: stats.male_fin_share_pct,
-            filterStatus: 'FINISHED',
-            filterGender: 'Male'
-          },
-          {
-            title: '🏆 Female Avg Pace (Non-Black Flag)',
-            value: stats.female_avg_pace,
-            sub: `${fmtNum(stats.female_finishers)} of ${fmtNum(stats.finished)} non-black flag (${stats.female_fin_share_pct}%) • Med: ${stats.female_median_pace}`,
-            badge: isAll ? 'Full Distance' : `Full ${stats.distance_km}K`,
-            color: 'text-pink-400',
-            barColor: 'bg-pink-500',
-            pct: stats.female_fin_share_pct,
-            filterStatus: 'FINISHED',
-            filterGender: 'Female'
-          },
-          {
-            title: '🏴🏅 Male Avg Pace (Black Flag)',
-            value: hasBf ? stats.male_bf_avg_pace : '—',
+            title: 'Overall Avg Pace (All Finishers)',
+            value: stats.combined_avg_pace,
             sub: hasBf
-              ? `${fmtNum(stats.male_bf_finishers)} of ${fmtNum(stats.black_flag)} Black Flag (${stats.male_bf_pct}%) • Med: ${stats.male_bf_median_pace}`
-              : '0 Male Black Flag (Finished before 09:45 WIB)',
+              ? `${fmtNum(stats.finished_plus_bf)} finishers (${fmtNum(stats.finished)} Clean + ${fmtNum(stats.black_flag)} Black Flag) • Med: ${stats.combined_median_pace}`
+              : `${fmtNum(stats.finished)} total finishers • Med: ${stats.median_pace}`,
+            badge: hasBf ? 'Full + Black Flag' : 'All Finishers',
+            color: 'text-red-400',
+            barColor: 'bg-red-500',
+            pct: stats.finished_plus_bf_pct,
+            filterStatus: 'ALL_FINISHERS',
+            malePace: stats.male_total_avg_pace,
+            maleCount: stats.male_total_finishers,
+            femalePace: stats.female_total_avg_pace,
+            femaleCount: stats.female_total_finishers
+          },
+          {
+            title: '🏴🏅 Finish Black Flag Avg Pace',
+            value: hasBf ? stats.bf_avg_pace : '—',
+            sub: hasBf
+              ? `${fmtNum(stats.black_flag)} Black Flag medalists (@ COP 3) • Med: ${stats.bf_median_pace}`
+              : '0 Black Flag finishers (Concluded before 09:45 WIB)',
             badge: hasBf ? 'Passed COP 3' : 'Concluded',
             color: 'text-sky-400',
             barColor: 'bg-sky-500',
-            pct: hasBf ? stats.male_bf_pct : 4,
+            pct: hasBf ? stats.black_flag_pct : 4,
             filterStatus: 'BLACK_FLAG',
-            filterGender: 'Male'
+            malePace: hasBf ? stats.male_bf_avg_pace : '—',
+            maleCount: stats.male_bf_finishers,
+            femalePace: hasBf ? stats.female_bf_avg_pace : '—',
+            femaleCount: stats.female_bf_finishers
           },
           {
-            title: '🏴🏅 Female Avg Pace (Black Flag)',
-            value: hasBf ? stats.female_bf_avg_pace : '—',
-            sub: hasBf
-              ? `${fmtNum(stats.female_bf_finishers)} of ${fmtNum(stats.black_flag)} Black Flag (${stats.female_bf_pct}%) • Med: ${stats.female_bf_median_pace}`
-              : '0 Female Black Flag (Finished before 09:45 WIB)',
-            badge: hasBf ? 'Passed COP 3' : 'Concluded',
-            color: 'text-purple-400',
-            barColor: 'bg-purple-500',
-            pct: hasBf ? stats.female_bf_pct : 4,
-            filterStatus: 'BLACK_FLAG',
-            filterGender: 'Female'
+            title: '🏆 Finish No Black Flag Avg Pace (Clean)',
+            value: stats.avg_pace,
+            sub: `${fmtNum(stats.finished)} clean full-distance finishers • Med: ${stats.median_pace}`,
+            badge: isAll ? 'Clean Full Distance' : `Clean Full ${stats.distance_km}K`,
+            color: 'text-emerald-400',
+            barColor: 'bg-emerald-500',
+            pct: stats.finished_pct,
+            filterStatus: 'FINISHED',
+            malePace: stats.male_avg_pace,
+            maleCount: stats.male_finishers,
+            femalePace: stats.female_avg_pace,
+            femaleCount: stats.female_finishers
           }
         ];
 
         paceGrid.innerHTML = paceCards.map(c => `
           <div
-            onclick="filterByStatusAndGender('${c.filterStatus}', '${c.filterGender}')"
+            onclick="filterByKpiStatus('${c.filterStatus}')"
             class="bg-[var(--card)] border border-[var(--border)] hover:border-red-500/40 rounded-2xl p-4 shadow-sm flex flex-col justify-between cursor-pointer transition"
             title="Click to filter runner table by ${c.title}"
           >
@@ -1433,6 +1431,24 @@
               </div>
               <div class="text-2xl font-bold mt-2 ${c.color}">${c.value}</div>
               <div class="text-xs text-[var(--muted-foreground)] mt-1">${c.sub}</div>
+              <div class="grid grid-cols-2 gap-2 mt-2.5 pt-2.5 border-t border-[var(--border)] text-xs">
+                <div
+                  onclick="event.stopPropagation(); filterByStatusAndGender('${c.filterStatus}', 'Male')"
+                  class="px-2.5 py-1.5 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:border-sky-500/50 transition"
+                  title="Click to filter Male runners in ${c.title}"
+                >
+                  <div class="text-[11px] text-[var(--muted-foreground)]">Male (${fmtNum(c.maleCount)})</div>
+                  <div class="font-mono font-bold text-sky-400 mt-0.5">${c.malePace}</div>
+                </div>
+                <div
+                  onclick="event.stopPropagation(); filterByStatusAndGender('${c.filterStatus}', 'Female')"
+                  class="px-2.5 py-1.5 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:border-pink-500/50 transition"
+                  title="Click to filter Female runners in ${c.title}"
+                >
+                  <div class="text-[11px] text-[var(--muted-foreground)]">Female (${fmtNum(c.femaleCount)})</div>
+                  <div class="font-mono font-bold text-pink-400 mt-0.5">${c.femalePace}</div>
+                </div>
+              </div>
             </div>
             <div class="w-full h-1.5 bg-[var(--background)] rounded-full overflow-hidden mt-3">
               <div class="h-full ${c.barColor} rounded-full" style="width: ${Math.min(100, Math.max(4, c.pct))}%"></div>
