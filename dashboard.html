@@ -1250,17 +1250,20 @@
       }).join('');
     }
 
-    function filterByKpiStatus(statusVal) {
-      if (selectedEventSlug === 'ALL') {
+    function filterByKpiStatus(statusVal, eventSlugOpt) {
+      const targetSlug = eventSlugOpt || selectedEventSlug;
+      if (targetSlug === 'ALL') {
         runnerEventFilter = 'ALL';
       } else {
-        const evIdx = DASHBOARD_DATA.event_lookup.findIndex(e => e.slug === selectedEventSlug);
+        const evIdx = DASHBOARD_DATA.event_lookup.findIndex(e => e.slug === targetSlug);
         runnerEventFilter = evIdx >= 0 ? String(evIdx) : 'ALL';
       }
       runnerStatusFilter = statusVal;
+      runnerGenderFilter = 'ALL';
       runnerRemarkFilter = statusVal === 'BLACK_FLAG' ? 'Finished Black Flag' : 'ALL';
       document.getElementById('runnerEventSelect').value = runnerEventFilter;
       document.getElementById('runnerStatusSelect').value = runnerStatusFilter;
+      document.getElementById('runnerGenderSelect').value = runnerGenderFilter;
       document.getElementById('runnerRemarkSelect').value = runnerRemarkFilter;
       filterRunnersList();
       document.getElementById('runnerTableSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1289,6 +1292,7 @@
       const { isAll, stats } = getActiveContext();
       const grid = document.getElementById('kpiGrid');
       const hasBf = stats.black_flag > 0;
+      const fmStats = DASHBOARD_DATA.events.find(e => e.event_slug === 'marathon') || stats;
 
       const cards = [
         {
@@ -1376,51 +1380,52 @@
             sub: hasBf
               ? `${fmtNum(stats.finished_plus_bf)} finishers (${fmtNum(stats.finished)} Clean + ${fmtNum(stats.black_flag)} Black Flag) • Med: ${stats.combined_median_pace}`
               : `${fmtNum(stats.finished)} total finishers • Med: ${stats.median_pace}`,
-            badge: hasBf ? 'Full + Black Flag' : 'All Finishers',
+            badge: isAll ? 'All 3 Events' : `${stats.event_name} (${stats.distance_km}K)`,
             color: 'text-red-400',
             barColor: 'bg-red-500',
             pct: stats.finished_plus_bf_pct,
             filterStatus: 'ALL_FINISHERS',
+            filterEventSlug: selectedEventSlug,
             malePace: stats.male_total_avg_pace,
             maleCount: stats.male_total_finishers,
             femalePace: stats.female_total_avg_pace,
             femaleCount: stats.female_total_finishers
           },
           {
-            title: '🏴🏅 Finish Black Flag Avg Pace',
-            value: hasBf ? stats.bf_avg_pace : '—',
-            sub: hasBf
-              ? `${fmtNum(stats.black_flag)} Black Flag medalists (@ COP 3) • Med: ${stats.bf_median_pace}`
-              : '0 Black Flag finishers (Concluded before 09:45 WIB)',
-            badge: hasBf ? 'Passed COP 3' : 'Concluded',
+            title: '🏴🏅 Finish Black Flag Avg Pace (Marathon)',
+            value: fmStats.bf_avg_pace,
+            sub: `${fmtNum(fmStats.black_flag)} Marathon Black Flag medalists (${fmStats.black_flag_pct}% of FM) • Med: ${fmStats.bf_median_pace}`,
+            badge: 'Marathon 42.2K • COP 3',
             color: 'text-sky-400',
             barColor: 'bg-sky-500',
-            pct: hasBf ? stats.black_flag_pct : 4,
+            pct: fmStats.black_flag_pct,
             filterStatus: 'BLACK_FLAG',
-            malePace: hasBf ? stats.male_bf_avg_pace : '—',
-            maleCount: stats.male_bf_finishers,
-            femalePace: hasBf ? stats.female_bf_avg_pace : '—',
-            femaleCount: stats.female_bf_finishers
+            filterEventSlug: 'marathon',
+            malePace: fmStats.male_bf_avg_pace,
+            maleCount: fmStats.male_bf_finishers,
+            femalePace: fmStats.female_bf_avg_pace,
+            femaleCount: fmStats.female_bf_finishers
           },
           {
             title: '🏆 Finish No Black Flag Avg Pace (Clean)',
-            value: stats.avg_pace,
-            sub: `${fmtNum(stats.finished)} clean full-distance finishers • Med: ${stats.median_pace}`,
-            badge: isAll ? 'Clean Full Distance' : `Clean Full ${stats.distance_km}K`,
+            value: fmStats.avg_pace,
+            sub: `${fmtNum(fmStats.finished)} Marathon clean 42.2K finishers (${fmStats.finished_pct}% of FM) • Med: ${fmStats.median_pace}`,
+            badge: 'Marathon 42.2K • Clean',
             color: 'text-emerald-400',
             barColor: 'bg-emerald-500',
-            pct: stats.finished_pct,
+            pct: fmStats.finished_pct,
             filterStatus: 'FINISHED',
-            malePace: stats.male_avg_pace,
-            maleCount: stats.male_finishers,
-            femalePace: stats.female_avg_pace,
-            femaleCount: stats.female_finishers
+            filterEventSlug: 'marathon',
+            malePace: fmStats.male_avg_pace,
+            maleCount: fmStats.male_finishers,
+            femalePace: fmStats.female_avg_pace,
+            femaleCount: fmStats.female_finishers
           }
         ];
 
         paceGrid.innerHTML = paceCards.map(c => `
           <div
-            onclick="filterByKpiStatus('${c.filterStatus}')"
+            onclick="filterByKpiStatus('${c.filterStatus}', '${c.filterEventSlug}')"
             class="bg-[var(--card)] border border-[var(--border)] hover:border-red-500/40 rounded-2xl p-4 shadow-sm flex flex-col justify-between cursor-pointer transition"
             title="Click to filter runner table by ${c.title}"
           >
@@ -1433,7 +1438,7 @@
               <div class="text-xs text-[var(--muted-foreground)] mt-1">${c.sub}</div>
               <div class="grid grid-cols-2 gap-2 mt-2.5 pt-2.5 border-t border-[var(--border)] text-xs">
                 <div
-                  onclick="event.stopPropagation(); filterByStatusAndGender('${c.filterStatus}', 'Male')"
+                  onclick="event.stopPropagation(); filterByStatusAndGender('${c.filterStatus}', 'Male', '${c.filterEventSlug}')"
                   class="px-2.5 py-1.5 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:border-sky-500/50 transition"
                   title="Click to filter Male runners in ${c.title}"
                 >
@@ -1441,7 +1446,7 @@
                   <div class="font-mono font-bold text-sky-400 mt-0.5">${c.malePace}</div>
                 </div>
                 <div
-                  onclick="event.stopPropagation(); filterByStatusAndGender('${c.filterStatus}', 'Female')"
+                  onclick="event.stopPropagation(); filterByStatusAndGender('${c.filterStatus}', 'Female', '${c.filterEventSlug}')"
                   class="px-2.5 py-1.5 rounded-lg bg-[var(--background)] border border-[var(--border)] hover:border-pink-500/50 transition"
                   title="Click to filter Female runners in ${c.title}"
                 >
