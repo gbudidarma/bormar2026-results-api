@@ -51,6 +51,37 @@ def compute_netto_sec(splits_dict: dict | None, split_cols: list[str], finish_ti
     return sum(vals)
 
 
+def compute_cum_split_at(splits_dict: dict | None, split_cols: list[str], target_cp: str | None) -> int | None:
+    if not splits_dict or not split_cols or not target_cp or target_cp not in split_cols:
+        return None
+    idx = split_cols.index(target_cp)
+    sub_cols = split_cols[: idx + 1]
+    vals = [time_to_sec(splits_dict.get(c)) for c in sub_cols]
+    if not vals or vals[-1] is None:
+        return None
+    if any(v is None for v in vals):
+        last_none = max(i for i, v in enumerate(vals) if v is None)
+        tail = vals[last_none + 1 :]
+        return sum(tail) if tail else None
+    return sum(vals)
+
+
+def compute_bf_elapsed_and_pace(r: dict, split_cols: list[str]) -> tuple[int | None, float | None, float | None]:
+    last_cp = r.get("last_checkpoint")
+    if not last_cp or not last_cp.startswith("KM "):
+        return None, None, None
+    try:
+        cp_dist = float(last_cp.replace("KM ", "").strip())
+    except ValueError:
+        return None, None, None
+    if cp_dist <= 0:
+        return None, None, None
+    elapsed_sec = compute_cum_split_at(r.get("splits"), split_cols, last_cp)
+    if not elapsed_sec or elapsed_sec <= 0:
+        return None, cp_dist, None
+    return elapsed_sec, cp_dist, elapsed_sec / cp_dist
+
+
 CATEGORY_ORDER = [
     "TOP 8 OVERALL",
     "TOP 5 OVERALL",
@@ -101,6 +132,11 @@ def compute_dashboard_data() -> dict:
     status_all = Counter(r["status"] for r in all_results)
     bf_all = sum(1 for r in all_results if r.get("remark") == "Finished Black Flag")
     all_paces = []
+    all_male_fin_paces = []
+    all_female_fin_paces = []
+    all_bf_paces = []
+    all_male_bf_paces = []
+    all_female_bf_paces = []
 
     event_lookup = []
     event_slug_to_idx = {}
@@ -161,10 +197,51 @@ def compute_dashboard_data() -> dict:
         avg_pace_sec = (avg_sec / dist) if avg_sec else None
         med_pace_sec = (med_sec / dist) if med_sec else None
         best_pace_sec = (min_sec / dist) if min_sec else None
-        male_pace_sec = (statistics.mean(male_secs) / dist) if male_secs else None
-        female_pace_sec = (statistics.mean(female_secs) / dist) if female_secs else None
+        male_avg_sec = statistics.mean(male_secs) if male_secs else None
+        female_avg_sec = statistics.mean(female_secs) if female_secs else None
+        male_pace_sec = (male_avg_sec / dist) if male_avg_sec else None
+        female_pace_sec = (female_avg_sec / dist) if female_avg_sec else None
+        male_med_pace_sec = (statistics.median(male_secs) / dist) if male_secs else None
+        female_med_pace_sec = (statistics.median(female_secs) / dist) if female_secs else None
 
-        all_paces.extend([s / dist for s in fin_secs])
+        ev_fin_paces = [s / dist for s in fin_secs]
+        ev_male_fin_paces = [s / dist for s in male_secs]
+        ev_female_fin_paces = [s / dist for s in female_secs]
+        all_paces.extend(ev_fin_paces)
+        all_male_fin_paces.extend(ev_male_fin_paces)
+        all_female_fin_paces.extend(ev_female_fin_paces)
+
+        bf_rows = [r for r in rows if r["status"] == "BLACK_FLAG"]
+        ev_bf_paces = []
+        ev_male_bf_paces = []
+        ev_female_bf_paces = []
+        for r in bf_rows:
+            _, _, bf_p_sec = compute_bf_elapsed_and_pace(r, clean_splits)
+            if bf_p_sec is not None:
+                ev_bf_paces.append(bf_p_sec)
+                if r.get("gender") == "Male":
+                    ev_male_bf_paces.append(bf_p_sec)
+                elif r.get("gender") == "Female":
+                    ev_female_bf_paces.append(bf_p_sec)
+
+        all_bf_paces.extend(ev_bf_paces)
+        all_male_bf_paces.extend(ev_male_bf_paces)
+        all_female_bf_paces.extend(ev_female_bf_paces)
+
+        bf_avg_pace_sec = statistics.mean(ev_bf_paces) if ev_bf_paces else None
+        bf_med_pace_sec = statistics.median(ev_bf_paces) if ev_bf_paces else None
+        male_bf_pace_sec = statistics.mean(ev_male_bf_paces) if ev_male_bf_paces else None
+        female_bf_pace_sec = statistics.mean(ev_female_bf_paces) if ev_female_bf_paces else None
+        male_bf_med_pace_sec = statistics.median(ev_male_bf_paces) if ev_male_bf_paces else None
+        female_bf_med_pace_sec = statistics.median(ev_female_bf_paces) if ev_female_bf_paces else None
+
+        ev_combined_paces = ev_fin_paces + ev_bf_paces
+        ev_male_combined_paces = ev_male_fin_paces + ev_male_bf_paces
+        ev_female_combined_paces = ev_female_fin_paces + ev_female_bf_paces
+        combined_avg_pace_sec = statistics.mean(ev_combined_paces) if ev_combined_paces else None
+        combined_med_pace_sec = statistics.median(ev_combined_paces) if ev_combined_paces else None
+        male_combined_pace_sec = statistics.mean(ev_male_combined_paces) if ev_male_combined_paces else None
+        female_combined_pace_sec = statistics.mean(ev_female_combined_paces) if ev_female_combined_paces else None
 
         buckets = []
         b_cfg = EVENT_BUCKET_CONFIG.get(slug)
@@ -315,10 +392,32 @@ def compute_dashboard_data() -> dict:
                 "avg_pace": sec_to_pace(avg_pace_sec),
                 "median_pace": sec_to_pace(med_pace_sec),
                 "best_pace": sec_to_pace(best_pace_sec),
+                "male_avg_time": sec_to_hms(male_avg_sec),
+                "female_avg_time": sec_to_hms(female_avg_sec),
                 "male_avg_pace": sec_to_pace(male_pace_sec),
                 "female_avg_pace": sec_to_pace(female_pace_sec),
+                "male_median_pace": sec_to_pace(male_med_pace_sec),
+                "female_median_pace": sec_to_pace(female_med_pace_sec),
                 "male_finishers": len(male_secs),
                 "female_finishers": len(female_secs),
+                "male_fin_share_pct": round(len(male_secs) * 100.0 / fin_count, 1) if fin_count else 0.0,
+                "female_fin_share_pct": round(len(female_secs) * 100.0 / fin_count, 1) if fin_count else 0.0,
+                "bf_avg_pace": sec_to_pace(bf_avg_pace_sec),
+                "bf_median_pace": sec_to_pace(bf_med_pace_sec),
+                "male_bf_finishers": len(ev_male_bf_paces),
+                "female_bf_finishers": len(ev_female_bf_paces),
+                "male_bf_pct": round(len(ev_male_bf_paces) * 100.0 / bf_count, 1) if bf_count else 0.0,
+                "female_bf_pct": round(len(ev_female_bf_paces) * 100.0 / bf_count, 1) if bf_count else 0.0,
+                "male_bf_avg_pace": sec_to_pace(male_bf_pace_sec),
+                "female_bf_avg_pace": sec_to_pace(female_bf_pace_sec),
+                "male_bf_median_pace": sec_to_pace(male_bf_med_pace_sec),
+                "female_bf_median_pace": sec_to_pace(female_bf_med_pace_sec),
+                "combined_avg_pace": sec_to_pace(combined_avg_pace_sec),
+                "combined_median_pace": sec_to_pace(combined_med_pace_sec),
+                "male_total_finishers": len(male_secs) + len(ev_male_bf_paces),
+                "female_total_finishers": len(female_secs) + len(ev_female_bf_paces),
+                "male_total_avg_pace": sec_to_pace(male_combined_pace_sec),
+                "female_total_avg_pace": sec_to_pace(female_combined_pace_sec),
                 "cot_label": b_cfg["cot_label"] if b_cfg else "-",
                 "step_label": b_cfg["step_label"] if b_cfg else "-",
                 "buckets": buckets,
@@ -339,10 +438,20 @@ def compute_dashboard_data() -> dict:
         split_cols = event_splits_by_idx[ev_idx]
         t_str = r.get("time") or ""
         t_sec = time_to_sec(t_str) if r["status"] == "FINISHED" else None
-        p_str = sec_to_pace(t_sec / dist).replace(" /km", "") if t_sec else ""
-        netto_sec = compute_netto_sec(r.get("splits"), split_cols, t_str) if r["status"] == "FINISHED" else None
-        netto_str = sec_to_hms(netto_sec) if netto_sec is not None else ""
-        netto_p_str = sec_to_pace(netto_sec / dist).replace(" /km", "") if netto_sec else p_str
+        if r["status"] == "FINISHED" and t_sec:
+            p_str = sec_to_pace(t_sec / dist).replace(" /km", "")
+            netto_sec = compute_netto_sec(r.get("splits"), split_cols, t_str)
+            netto_str = sec_to_hms(netto_sec) if netto_sec is not None else ""
+            netto_p_str = sec_to_pace(netto_sec / dist).replace(" /km", "") if netto_sec else p_str
+        elif r["status"] == "BLACK_FLAG":
+            _, _, bf_p_sec = compute_bf_elapsed_and_pace(r, split_cols)
+            p_str = sec_to_pace(bf_p_sec).replace(" /km", "") if bf_p_sec else ""
+            netto_str = ""
+            netto_p_str = p_str
+        else:
+            p_str = ""
+            netto_str = ""
+            netto_p_str = ""
         splits_arr = [r["splits"].get(c) or "" for c in split_cols]
         bib = r["bib_no"]
         pos = r["position"]
@@ -383,6 +492,9 @@ def compute_dashboard_data() -> dict:
     cut_all = status_all.get("CUT", 0)
     dns_all = status_all.get("DNS", 0)
     dq_all = status_all.get("DQ", 0) + status_all.get("DSQ", 0)
+    all_combined_paces = all_paces + all_bf_paces
+    all_male_combined_paces = all_male_fin_paces + all_male_bf_paces
+    all_female_combined_paces = all_female_fin_paces + all_female_bf_paces
 
     return {
         "overall": {
@@ -407,6 +519,30 @@ def compute_dashboard_data() -> dict:
             "other_pct": round(dq_all * 100.0 / total_all, 2),
             "avg_pace": sec_to_pace(statistics.mean(all_paces)),
             "median_pace": sec_to_pace(statistics.median(all_paces)),
+            "male_finishers": len(all_male_fin_paces),
+            "female_finishers": len(all_female_fin_paces),
+            "male_fin_share_pct": round(len(all_male_fin_paces) * 100.0 / fin_all, 1) if fin_all else 0.0,
+            "female_fin_share_pct": round(len(all_female_fin_paces) * 100.0 / fin_all, 1) if fin_all else 0.0,
+            "male_avg_pace": sec_to_pace(statistics.mean(all_male_fin_paces)) if all_male_fin_paces else "-",
+            "female_avg_pace": sec_to_pace(statistics.mean(all_female_fin_paces)) if all_female_fin_paces else "-",
+            "male_median_pace": sec_to_pace(statistics.median(all_male_fin_paces)) if all_male_fin_paces else "-",
+            "female_median_pace": sec_to_pace(statistics.median(all_female_fin_paces)) if all_female_fin_paces else "-",
+            "bf_avg_pace": sec_to_pace(statistics.mean(all_bf_paces)) if all_bf_paces else "-",
+            "bf_median_pace": sec_to_pace(statistics.median(all_bf_paces)) if all_bf_paces else "-",
+            "male_bf_finishers": len(all_male_bf_paces),
+            "female_bf_finishers": len(all_female_bf_paces),
+            "male_bf_pct": round(len(all_male_bf_paces) * 100.0 / bf_all, 1) if bf_all else 0.0,
+            "female_bf_pct": round(len(all_female_bf_paces) * 100.0 / bf_all, 1) if bf_all else 0.0,
+            "male_bf_avg_pace": sec_to_pace(statistics.mean(all_male_bf_paces)) if all_male_bf_paces else "-",
+            "female_bf_avg_pace": sec_to_pace(statistics.mean(all_female_bf_paces)) if all_female_bf_paces else "-",
+            "male_bf_median_pace": sec_to_pace(statistics.median(all_male_bf_paces)) if all_male_bf_paces else "-",
+            "female_bf_median_pace": sec_to_pace(statistics.median(all_female_bf_paces)) if all_female_bf_paces else "-",
+            "combined_avg_pace": sec_to_pace(statistics.mean(all_combined_paces)) if all_combined_paces else "-",
+            "combined_median_pace": sec_to_pace(statistics.median(all_combined_paces)) if all_combined_paces else "-",
+            "male_total_finishers": len(all_male_combined_paces),
+            "female_total_finishers": len(all_female_combined_paces),
+            "male_total_avg_pace": sec_to_pace(statistics.mean(all_male_combined_paces)) if all_male_combined_paces else "-",
+            "female_total_avg_pace": sec_to_pace(statistics.mean(all_female_combined_paces)) if all_female_combined_paces else "-",
         },
         "events": events_analytics,
         "event_lookup": event_lookup,
@@ -569,11 +705,12 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     </div>
 
     <!-- Top KPI Cards -->
-    <div id="overviewSection" class="scroll-mt-20 space-y-6">
+    <div id="overviewSection" class="scroll-mt-20 space-y-4">
       <div id="kpiGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4"></div>
+      <div id="paceKpiGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
 
       <!-- Status Breakdown Bar + Event Comparison Table -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2">
         <!-- Left: Status Breakdown & Pace Details -->
         <div class="lg:col-span-5 bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm flex flex-col justify-between space-y-4">
           <div>
@@ -1298,8 +1435,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             const pStrB = b[14] || b[6] || '';
             const secA = parseTimeSec(pStrA);
             const secB = parseTimeSec(pStrB);
-            const hasA = secA !== null && a[2] === 'FINISHED';
-            const hasB = secB !== null && b[2] === 'FINISHED';
+            const hasA = secA !== null && (a[2] === 'FINISHED' || a[2] === 'BLACK_FLAG');
+            const hasB = secB !== null && (b[2] === 'FINISHED' || b[2] === 'BLACK_FLAG');
             if (hasA && hasB) return (secA - secB) * dir;
             if (hasA && !hasB) return -1;
             if (!hasA && hasB) return 1;
@@ -1681,6 +1818,25 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       document.getElementById('runnerTableSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
+    function filterByStatusAndGender(statusVal, genderVal, eventSlugOpt) {
+      const targetSlug = eventSlugOpt || selectedEventSlug;
+      if (targetSlug === 'ALL') {
+        runnerEventFilter = statusVal === 'BLACK_FLAG' ? '0' : 'ALL';
+      } else {
+        const evIdx = DASHBOARD_DATA.event_lookup.findIndex(e => e.slug === targetSlug);
+        runnerEventFilter = evIdx >= 0 ? String(evIdx) : 'ALL';
+      }
+      runnerStatusFilter = statusVal;
+      runnerGenderFilter = genderVal || 'ALL';
+      runnerRemarkFilter = statusVal === 'BLACK_FLAG' ? 'Finished Black Flag' : 'ALL';
+      document.getElementById('runnerEventSelect').value = runnerEventFilter;
+      document.getElementById('runnerStatusSelect').value = runnerStatusFilter;
+      document.getElementById('runnerGenderSelect').value = runnerGenderFilter;
+      document.getElementById('runnerRemarkSelect').value = runnerRemarkFilter;
+      filterRunnersList();
+      document.getElementById('runnerTableSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
     function renderKPIs() {
       const { isAll, stats } = getActiveContext();
       const grid = document.getElementById('kpiGrid');
@@ -1762,6 +1918,80 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           </div>
         </div>
       `).join('');
+
+      const paceGrid = document.getElementById('paceKpiGrid');
+      if (paceGrid) {
+        const paceCards = [
+          {
+            title: '🏆 Male Avg Pace (Non-Black Flag)',
+            value: stats.male_avg_pace,
+            sub: `${fmtNum(stats.male_finishers)} of ${fmtNum(stats.finished)} non-black flag (${stats.male_fin_share_pct}%) • Med: ${stats.male_median_pace}`,
+            badge: isAll ? 'Full Distance' : `Full ${stats.distance_km}K`,
+            color: 'text-emerald-400',
+            barColor: 'bg-emerald-500',
+            pct: stats.male_fin_share_pct,
+            filterStatus: 'FINISHED',
+            filterGender: 'Male'
+          },
+          {
+            title: '🏆 Female Avg Pace (Non-Black Flag)',
+            value: stats.female_avg_pace,
+            sub: `${fmtNum(stats.female_finishers)} of ${fmtNum(stats.finished)} non-black flag (${stats.female_fin_share_pct}%) • Med: ${stats.female_median_pace}`,
+            badge: isAll ? 'Full Distance' : `Full ${stats.distance_km}K`,
+            color: 'text-pink-400',
+            barColor: 'bg-pink-500',
+            pct: stats.female_fin_share_pct,
+            filterStatus: 'FINISHED',
+            filterGender: 'Female'
+          },
+          {
+            title: '🏴🏅 Male Avg Pace (Black Flag)',
+            value: hasBf ? stats.male_bf_avg_pace : '—',
+            sub: hasBf
+              ? `${fmtNum(stats.male_bf_finishers)} of ${fmtNum(stats.black_flag)} Black Flag (${stats.male_bf_pct}%) • Med: ${stats.male_bf_median_pace}`
+              : '0 Male Black Flag (Finished before 09:45 WIB)',
+            badge: hasBf ? 'Passed COP 3' : 'Concluded',
+            color: 'text-sky-400',
+            barColor: 'bg-sky-500',
+            pct: hasBf ? stats.male_bf_pct : 4,
+            filterStatus: 'BLACK_FLAG',
+            filterGender: 'Male'
+          },
+          {
+            title: '🏴🏅 Female Avg Pace (Black Flag)',
+            value: hasBf ? stats.female_bf_avg_pace : '—',
+            sub: hasBf
+              ? `${fmtNum(stats.female_bf_finishers)} of ${fmtNum(stats.black_flag)} Black Flag (${stats.female_bf_pct}%) • Med: ${stats.female_bf_median_pace}`
+              : '0 Female Black Flag (Finished before 09:45 WIB)',
+            badge: hasBf ? 'Passed COP 3' : 'Concluded',
+            color: 'text-purple-400',
+            barColor: 'bg-purple-500',
+            pct: hasBf ? stats.female_bf_pct : 4,
+            filterStatus: 'BLACK_FLAG',
+            filterGender: 'Female'
+          }
+        ];
+
+        paceGrid.innerHTML = paceCards.map(c => `
+          <div
+            onclick="filterByStatusAndGender('${c.filterStatus}', '${c.filterGender}')"
+            class="bg-[var(--card)] border border-[var(--border)] hover:border-red-500/40 rounded-2xl p-4 shadow-sm flex flex-col justify-between cursor-pointer transition"
+            title="Click to filter runner table by ${c.title}"
+          >
+            <div>
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-xs font-medium text-[var(--muted-foreground)]">${c.title}</span>
+                <span class="text-xs px-2 py-0.5 rounded-md bg-[var(--background)] border border-[var(--border)] text-[var(--muted-foreground)]">${c.badge}</span>
+              </div>
+              <div class="text-2xl font-bold mt-2 ${c.color}">${c.value}</div>
+              <div class="text-xs text-[var(--muted-foreground)] mt-1">${c.sub}</div>
+            </div>
+            <div class="w-full h-1.5 bg-[var(--background)] rounded-full overflow-hidden mt-3">
+              <div class="h-full ${c.barColor} rounded-full" style="width: ${Math.min(100, Math.max(4, c.pct))}%"></div>
+            </div>
+          </div>
+        `).join('');
+      }
     }
 
     function renderStatusAndRightPanel() {
@@ -1803,34 +2033,25 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         </div>
       `;
 
-      if (isAll) {
-        const evFinSummary = DASHBOARD_DATA.events.map(e => `${fmtNum(e.finished)} ${e.event_slug === 'marathon' ? 'FM' : e.event_slug === 'half_marathon' ? 'HM' : '10K'}`).join(' • ');
-        paceGenderCards.innerHTML = `
-          <div onclick="filterByKpiStatus('ALL_FINISHERS')" class="p-3 rounded-xl bg-[var(--background)] border border-[var(--border)] hover:border-red-500/40 cursor-pointer transition">
-            <div class="text-xs text-[var(--muted-foreground)]">Total Finishers (Full + Black Flag)</div>
-            <div class="text-base font-bold text-red-400 mt-0.5">${fmtNum(stats.finished_plus_bf)} (${stats.finished_plus_bf_pct}%)</div>
-            <div class="text-xs text-[var(--muted-foreground)]">${fmtNum(stats.finished)} Full + ${fmtNum(stats.black_flag)} Black Flag</div>
-          </div>
-          <div onclick="filterByKpiStatus('FINISHED')" class="p-3 rounded-xl bg-[var(--background)] border border-[var(--border)] hover:border-emerald-500/40 cursor-pointer transition">
-            <div class="text-xs text-[var(--muted-foreground)]">Finished (Non-Black Flag)</div>
-            <div class="text-base font-bold text-emerald-400 mt-0.5">${fmtNum(stats.finished)} (${stats.finished_pct}%)</div>
-            <div class="text-xs text-[var(--muted-foreground)]">${evFinSummary}</div>
-          </div>
-        `;
-      } else {
-        paceGenderCards.innerHTML = `
-          <div class="p-3 rounded-xl bg-[var(--background)] border border-[var(--border)]">
-            <div class="text-xs text-[var(--muted-foreground)]">Male Avg Pace (Full Distance)</div>
-            <div class="text-base font-bold text-sky-500 mt-0.5">${stats.male_avg_pace}</div>
-            <div class="text-xs text-[var(--muted-foreground)]">${fmtNum(stats.male_finishers)} Male full finishers</div>
-          </div>
-          <div class="p-3 rounded-xl bg-[var(--background)] border border-[var(--border)]">
-            <div class="text-xs text-[var(--muted-foreground)]">Female Avg Pace (Full Distance)</div>
-            <div class="text-base font-bold text-pink-500 mt-0.5">${stats.female_avg_pace}</div>
-            <div class="text-xs text-[var(--muted-foreground)]">${fmtNum(stats.female_finishers)} Female full finishers</div>
-          </div>
-        `;
-      }
+      const evFinSummary = DASHBOARD_DATA.events
+        .map(e => `${fmtNum(e.finished)} ${e.event_slug === 'marathon' ? 'FM' : e.event_slug === 'half_marathon' ? 'HM' : '10K'}`)
+        .join(' • ');
+      const nonBfSub = isAll
+        ? evFinSummary
+        : `Avg Time: ${stats.avg_time} • Best: ${stats.best_time}`;
+
+      paceGenderCards.innerHTML = `
+        <div onclick="filterByKpiStatus('ALL_FINISHERS')" class="p-3 rounded-xl bg-[var(--background)] border border-[var(--border)] hover:border-red-500/40 cursor-pointer transition">
+          <div class="text-xs text-[var(--muted-foreground)]">Total Finishers (Full + Black Flag)</div>
+          <div class="text-base font-bold text-red-400 mt-0.5">${fmtNum(stats.finished_plus_bf)} (${stats.finished_plus_bf_pct}%)</div>
+          <div class="text-xs text-[var(--muted-foreground)]">${fmtNum(stats.finished)} Full + ${fmtNum(stats.black_flag)} Black Flag</div>
+        </div>
+        <div onclick="filterByKpiStatus('FINISHED')" class="p-3 rounded-xl bg-[var(--background)] border border-[var(--border)] hover:border-emerald-500/40 cursor-pointer transition">
+          <div class="text-xs text-[var(--muted-foreground)]">Finished (Non-Black Flag)</div>
+          <div class="text-base font-bold text-emerald-400 mt-0.5">${fmtNum(stats.finished)} (${stats.finished_pct}%)</div>
+          <div class="text-xs text-[var(--muted-foreground)]">${nonBfSub}</div>
+        </div>
+      `;
 
       const rightTitle = document.getElementById('rightPanelTitle');
       const rightSubtitle = document.getElementById('rightPanelSubtitle');
@@ -1838,57 +2059,134 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
       if (isAll) {
         rightTitle.textContent = 'Event-by-Event Finish, Black Flag, DNF, DNS & Pace Comparison';
-        rightSubtitle.textContent = 'Click any event row to filter the dashboard to that specific race';
+        rightSubtitle.textContent = 'Click any event row or Male/Female pace cohort below to filter the dashboard';
+        const fmEv = DASHBOARD_DATA.events.find(e => e.event_slug === 'marathon');
+        const ov = DASHBOARD_DATA.overall;
         rightContent.innerHTML = `
-          <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-              <thead>
-                <tr class="border-b border-[var(--border)] text-xs text-[var(--muted-foreground)]">
-                  <th class="py-2.5 pr-3 font-semibold">Event</th>
-                  <th class="py-2.5 px-2 font-semibold text-right">Total</th>
-                  <th class="py-2.5 px-2 font-semibold text-right text-red-400">Full Finish</th>
-                  <th class="py-2.5 px-2 font-semibold text-right text-sky-400">🏴 Black Flag</th>
-                  <th class="py-2.5 px-2 font-semibold text-right text-red-300">Total Finish %</th>
-                  <th class="py-2.5 px-2 font-semibold text-right text-amber-500">DNF %</th>
-                  <th class="py-2.5 px-2 font-semibold text-right text-rose-500">DNS %</th>
-                  <th class="py-2.5 px-2 font-semibold text-right text-red-400">Avg Time</th>
-                  <th class="py-2.5 pl-2 font-semibold text-right text-sky-500">Avg Pace</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-[var(--border)] text-xs">
-                ${DASHBOARD_DATA.events.map(ev => `
-                  <tr onclick="selectEvent('${ev.event_slug}')" class="hover:bg-[var(--background)] cursor-pointer transition">
-                    <td class="py-3 pr-3">
-                      <div class="font-semibold text-[var(--foreground)]">${ev.event_name}</div>
-                      <div class="text-xs text-[var(--muted-foreground)]">${ev.distance_km} KM</div>
-                    </td>
-                    <td class="py-3 px-2 text-right font-medium">${fmtNum(ev.total)}</td>
-                    <td class="py-3 px-2 text-right">
-                      <span class="font-semibold text-red-400">${ev.finished_pct}%</span>
-                      <div class="text-xs text-[var(--muted-foreground)]">${fmtNum(ev.finished)}</div>
-                    </td>
-                    <td class="py-3 px-2 text-right">
-                      <span class="font-semibold text-sky-400">${ev.black_flag_pct}%</span>
-                      <div class="text-xs text-[var(--muted-foreground)]">${fmtNum(ev.black_flag)}</div>
-                    </td>
-                    <td class="py-3 px-2 text-right">
-                      <span class="font-bold text-red-300">${ev.finished_plus_bf_pct}%</span>
-                      <div class="text-xs text-[var(--muted-foreground)]">${fmtNum(ev.finished_plus_bf)}</div>
-                    </td>
-                    <td class="py-3 px-2 text-right">
-                      <span class="font-semibold text-amber-500">${ev.dnf_pct}%</span>
-                      <div class="text-xs text-[var(--muted-foreground)]">${fmtNum(ev.dnf)}</div>
-                    </td>
-                    <td class="py-3 px-2 text-right">
-                      <span class="font-semibold text-rose-500">${ev.dns_pct}%</span>
-                      <div class="text-xs text-[var(--muted-foreground)]">${fmtNum(ev.dns)}</div>
-                    </td>
-                    <td class="py-3 px-2 text-right font-mono font-bold text-red-400">${ev.avg_time}</td>
-                    <td class="py-3 pl-2 text-right font-mono font-semibold text-sky-500">${ev.avg_pace}</td>
+          <div class="space-y-4">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="border-b border-[var(--border)] text-xs text-[var(--muted-foreground)]">
+                    <th class="py-2.5 pr-3 font-semibold">Event</th>
+                    <th class="py-2.5 px-2 font-semibold text-right">Total</th>
+                    <th class="py-2.5 px-2 font-semibold text-right text-red-400">Full Finish</th>
+                    <th class="py-2.5 px-2 font-semibold text-right text-sky-400">🏴 Black Flag</th>
+                    <th class="py-2.5 px-2 font-semibold text-right text-red-300">Total Finish %</th>
+                    <th class="py-2.5 px-2 font-semibold text-right text-amber-500">DNF %</th>
+                    <th class="py-2.5 px-2 font-semibold text-right text-rose-500">DNS %</th>
+                    <th class="py-2.5 px-2 font-semibold text-right text-red-400">Avg Time</th>
+                    <th class="py-2.5 pl-2 font-semibold text-right text-sky-500">Avg Pace</th>
                   </tr>
-                `).join('')}
-              </tbody>
-            </table>
+                </thead>
+                <tbody class="divide-y divide-[var(--border)] text-xs">
+                  ${DASHBOARD_DATA.events.map(ev => `
+                    <tr onclick="selectEvent('${ev.event_slug}')" class="hover:bg-[var(--background)] cursor-pointer transition">
+                      <td class="py-3 pr-3">
+                        <div class="font-semibold text-[var(--foreground)]">${ev.event_name}</div>
+                        <div class="text-xs text-[var(--muted-foreground)]">${ev.distance_km} KM</div>
+                      </td>
+                      <td class="py-3 px-2 text-right font-medium">${fmtNum(ev.total)}</td>
+                      <td class="py-3 px-2 text-right">
+                        <span class="font-semibold text-red-400">${ev.finished_pct}%</span>
+                        <div class="text-xs text-[var(--muted-foreground)]">${fmtNum(ev.finished)}</div>
+                      </td>
+                      <td class="py-3 px-2 text-right">
+                        <span class="font-semibold text-sky-400">${ev.black_flag_pct}%</span>
+                        <div class="text-xs text-[var(--muted-foreground)]">${fmtNum(ev.black_flag)}</div>
+                      </td>
+                      <td class="py-3 px-2 text-right">
+                        <span class="font-bold text-red-300">${ev.finished_plus_bf_pct}%</span>
+                        <div class="text-xs text-[var(--muted-foreground)]">${fmtNum(ev.finished_plus_bf)}</div>
+                      </td>
+                      <td class="py-3 px-2 text-right">
+                        <span class="font-semibold text-amber-500">${ev.dnf_pct}%</span>
+                        <div class="text-xs text-[var(--muted-foreground)]">${fmtNum(ev.dnf)}</div>
+                      </td>
+                      <td class="py-3 px-2 text-right">
+                        <span class="font-semibold text-rose-500">${ev.dns_pct}%</span>
+                        <div class="text-xs text-[var(--muted-foreground)]">${fmtNum(ev.dns)}</div>
+                      </td>
+                      <td class="py-3 px-2 text-right font-mono font-bold text-red-400">${ev.avg_time}</td>
+                      <td class="py-3 pl-2 text-right font-mono font-semibold text-sky-500">${ev.avg_pace}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Male & Female Finisher Avg Pace Summary Table (Non-Black Flag vs Black Flag) -->
+            <div class="pt-3 border-t border-[var(--border)] space-y-2">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="text-xs font-bold text-[var(--foreground)]">Male &amp; Female Finisher Avg Pace Summary (Non-Black Flag vs. Black Flag)</div>
+                <span class="text-[11px] text-[var(--muted-foreground)]">Click any Male / Female cell to filter runners</span>
+              </div>
+              <div class="overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--background)]">
+                <table class="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr class="border-b border-[var(--border)] text-[11px] text-[var(--muted-foreground)]">
+                      <th class="py-2 px-3 font-semibold">Finisher Cohort / Event</th>
+                      <th class="py-2 px-2 font-semibold text-right">Finishers</th>
+                      <th class="py-2 px-2 font-semibold text-right">Overall Pace</th>
+                      <th class="py-2 px-2 font-semibold text-right text-sky-400">Male Finishers</th>
+                      <th class="py-2 px-2 font-semibold text-right text-sky-400">Male Avg Pace</th>
+                      <th class="py-2 px-2 font-semibold text-right text-pink-400">Female Finishers</th>
+                      <th class="py-2 px-3 font-semibold text-right text-pink-400">Female Avg Pace</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-[var(--border)]">
+                    ${DASHBOARD_DATA.events.map(ev => `
+                      <tr class="hover:bg-[var(--card)] transition">
+                        <td onclick="selectEvent('${ev.event_slug}')" class="py-2 px-3 font-semibold text-[var(--foreground)] cursor-pointer">
+                          🏆 ${ev.event_name} <span class="text-[11px] font-normal text-emerald-400">(Non-Black Flag)</span>
+                        </td>
+                        <td class="py-2 px-2 text-right font-mono font-semibold text-emerald-400">${fmtNum(ev.finished)}</td>
+                        <td class="py-2 px-2 text-right font-mono font-semibold text-[var(--foreground)]">${ev.avg_pace}</td>
+                        <td onclick="filterByStatusAndGender('FINISHED', 'Male', '${ev.event_slug}')" class="py-2 px-2 text-right font-mono text-sky-400 hover:underline cursor-pointer">${fmtNum(ev.male_finishers)} <span class="text-[10px] text-[var(--muted-foreground)]">(${ev.male_fin_share_pct}%)</span></td>
+                        <td onclick="filterByStatusAndGender('FINISHED', 'Male', '${ev.event_slug}')" class="py-2 px-2 text-right font-mono font-bold text-sky-400 hover:underline cursor-pointer">${ev.male_avg_pace}</td>
+                        <td onclick="filterByStatusAndGender('FINISHED', 'Female', '${ev.event_slug}')" class="py-2 px-2 text-right font-mono text-pink-400 hover:underline cursor-pointer">${fmtNum(ev.female_finishers)} <span class="text-[10px] text-[var(--muted-foreground)]">(${ev.female_fin_share_pct}%)</span></td>
+                        <td onclick="filterByStatusAndGender('FINISHED', 'Female', '${ev.event_slug}')" class="py-2 px-3 text-right font-mono font-bold text-pink-400 hover:underline cursor-pointer">${ev.female_avg_pace}</td>
+                      </tr>
+                    `).join('')}
+                    ${fmEv ? `
+                      <tr class="bg-sky-500/5 hover:bg-sky-500/10 transition">
+                        <td onclick="filterBlackFlagRunners()" class="py-2 px-3 font-semibold text-sky-400 cursor-pointer">
+                          🏴🏅 Marathon <span class="text-[11px] font-normal text-sky-300">(Finished Black Flag @ COP 3)</span>
+                        </td>
+                        <td class="py-2 px-2 text-right font-mono font-semibold text-sky-400">${fmtNum(fmEv.black_flag)}</td>
+                        <td class="py-2 px-2 text-right font-mono font-semibold text-sky-300">${fmEv.bf_avg_pace}</td>
+                        <td onclick="filterByStatusAndGender('BLACK_FLAG', 'Male', 'marathon')" class="py-2 px-2 text-right font-mono text-sky-400 hover:underline cursor-pointer">${fmtNum(fmEv.male_bf_finishers)} <span class="text-[10px] text-[var(--muted-foreground)]">(${fmEv.male_bf_pct}%)</span></td>
+                        <td onclick="filterByStatusAndGender('BLACK_FLAG', 'Male', 'marathon')" class="py-2 px-2 text-right font-mono font-bold text-sky-400 hover:underline cursor-pointer">${fmEv.male_bf_avg_pace}</td>
+                        <td onclick="filterByStatusAndGender('BLACK_FLAG', 'Female', 'marathon')" class="py-2 px-2 text-right font-mono text-pink-400 hover:underline cursor-pointer">${fmtNum(fmEv.female_bf_finishers)} <span class="text-[10px] text-[var(--muted-foreground)]">(${fmEv.female_bf_pct}%)</span></td>
+                        <td onclick="filterByStatusAndGender('BLACK_FLAG', 'Female', 'marathon')" class="py-2 px-3 text-right font-mono font-bold text-pink-400 hover:underline cursor-pointer">${fmEv.female_bf_avg_pace}</td>
+                      </tr>
+                    ` : ''}
+                    <tr class="border-t-2 border-[var(--border)] bg-[var(--card)]/60 font-semibold">
+                      <td onclick="filterByKpiStatus('FINISHED')" class="py-2 px-3 text-emerald-400 cursor-pointer">
+                        All Events — Non-Black Flag Total
+                      </td>
+                      <td class="py-2 px-2 text-right font-mono text-emerald-400">${fmtNum(ov.finished)}</td>
+                      <td class="py-2 px-2 text-right font-mono text-[var(--foreground)]">${ov.avg_pace}</td>
+                      <td onclick="filterByStatusAndGender('FINISHED', 'Male', 'ALL')" class="py-2 px-2 text-right font-mono text-sky-400 hover:underline cursor-pointer">${fmtNum(ov.male_finishers)} <span class="text-[10px] font-normal text-[var(--muted-foreground)]">(${ov.male_fin_share_pct}%)</span></td>
+                      <td onclick="filterByStatusAndGender('FINISHED', 'Male', 'ALL')" class="py-2 px-2 text-right font-mono font-bold text-sky-400 hover:underline cursor-pointer">${ov.male_avg_pace}</td>
+                      <td onclick="filterByStatusAndGender('FINISHED', 'Female', 'ALL')" class="py-2 px-2 text-right font-mono text-pink-400 hover:underline cursor-pointer">${fmtNum(ov.female_finishers)} <span class="text-[10px] font-normal text-[var(--muted-foreground)]">(${ov.female_fin_share_pct}%)</span></td>
+                      <td onclick="filterByStatusAndGender('FINISHED', 'Female', 'ALL')" class="py-2 px-3 text-right font-mono font-bold text-pink-400 hover:underline cursor-pointer">${ov.female_avg_pace}</td>
+                    </tr>
+                    <tr class="bg-red-500/5 font-semibold">
+                      <td onclick="filterByKpiStatus('ALL_FINISHERS')" class="py-2 px-3 text-red-400 cursor-pointer">
+                        All Events — Total Finishers (Full + Black Flag)
+                      </td>
+                      <td class="py-2 px-2 text-right font-mono text-red-400">${fmtNum(ov.finished_plus_bf)}</td>
+                      <td class="py-2 px-2 text-right font-mono text-[var(--foreground)]">${ov.combined_avg_pace}</td>
+                      <td onclick="filterByStatusAndGender('ALL_FINISHERS', 'Male', 'ALL')" class="py-2 px-2 text-right font-mono text-sky-400 hover:underline cursor-pointer">${fmtNum(ov.male_total_finishers)}</td>
+                      <td onclick="filterByStatusAndGender('ALL_FINISHERS', 'Male', 'ALL')" class="py-2 px-2 text-right font-mono font-bold text-sky-400 hover:underline cursor-pointer">${ov.male_total_avg_pace}</td>
+                      <td onclick="filterByStatusAndGender('ALL_FINISHERS', 'Female', 'ALL')" class="py-2 px-2 text-right font-mono text-pink-400 hover:underline cursor-pointer">${fmtNum(ov.female_total_finishers)}</td>
+                      <td onclick="filterByStatusAndGender('ALL_FINISHERS', 'Female', 'ALL')" class="py-2 px-3 text-right font-mono font-bold text-pink-400 hover:underline cursor-pointer">${ov.female_total_avg_pace}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         `;
       } else {
